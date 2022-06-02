@@ -1,0 +1,125 @@
+name: CI
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+jobs:
+  generate-launchers:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: true
+      - uses: coursier/cache-action@v6.3
+      - uses: coursier/setup-action@v1.2.0-M3
+        with:
+          jvm: temurin:17
+      - run: |
+          ./mill -i "java-class-name.writeNativeImageScript" generate.sh "" && \
+          ./generate.sh && \
+          ./mill -i "java-class-name.copyToArtifacts" artifacts/
+        if: runner.os != 'Windows'
+      - run: |
+          @call ./mill.bat -i "java-class-name.writeNativeImageScript" generate.bat ""
+          @call generate.bat
+          @call ./mill.bat -i "java-class-name.copyToArtifacts" artifacts/
+        shell: cmd
+        if: runner.os == 'Windows'
+      - name: Test
+        run: ./mill -i java-class-name-tests.test
+      - uses: actions/upload-artifact@v2.2.4
+        with:
+          name: launcher-${{ matrix.os }}
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 1
+      - run: ./mill -i ci.upload artifacts/
+        if: github.event_name == 'push'
+        env:
+          UPLOAD_GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  generate-static-launcher:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: true
+      - uses: coursier/cache-action@v6.3
+      - uses: coursier/setup-action@v1.2.0-M3
+        with:
+          jvm: temurin:17
+      - run: |
+          ./mill -i "java-class-name.static.writeNativeImageScript" generate.sh "" && \
+          ./generate.sh && \
+          ./mill -i "java-class-name.static.copyToArtifacts" artifacts/
+      - uses: actions/upload-artifact@v2.2.4
+        with:
+          name: launcher-linux-static
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 1
+      - name: Test
+        run: ./mill -i java-class-name-tests.static.test
+      - run: ./mill -i ci.upload artifacts/
+        if: github.event_name == 'push'
+        env:
+          UPLOAD_GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  generate-mostly-static-launcher:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: true
+      - uses: coursier/cache-action@v6.3
+      - uses: coursier/setup-action@v1.2.0-M3
+        with:
+          jvm: temurin:17
+      - run: |
+          ./mill -i "java-class-name.mostly-static.writeNativeImageScript" generate.sh "" && \
+          ./generate.sh && \
+          ./mill -i "java-class-name.mostly-static.copyToArtifacts" artifacts/
+      - uses: actions/upload-artifact@v2.2.4
+        with:
+          name: launcher-linux-mostly-static
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 1
+      - name: Test
+        run: ./mill -i java-class-name-tests.mostly-static.test
+      - run: ./mill -i ci.upload artifacts/
+        if: github.event_name == 'push'
+        env:
+          UPLOAD_GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish:
+    needs: generate-launchers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: true
+      - uses: coursier/cache-action@v6.3
+      - uses: coursier/setup-action@v1.2.0-M3
+        with:
+          jvm: temurin:17
+      - run: .github/scripts/gpg-setup.sh
+        env:
+          PGP_SECRET: ${{ secrets.PUBLISH_SECRET_KEY }}
+      - name: Publish
+        run: ./mill -i ci.publishSonatype __.publishArtifacts
+        env:
+          PGP_PASSWORD: ${{ secrets.PUBLISH_SECRET_KEY_PASSWORD }}
+          SONATYPE_PASSWORD: ${{ secrets.PUBLISH_USER }}
+          SONATYPE_USERNAME: ${{ secrets.PUBLISH_PASSWORD }}
