@@ -264,6 +264,6 @@ object ci extends Module {
       if (version.endsWith("-SNAPSHOT")) ("nightly", true)
       else ("v" + version, false)
 
-    Upload.upload("scala-cli", "java-class-name", ghToken, tag, dryRun = false, overwrite = overwriteAssets)(launchers: _*)
+    Upload.upload(ghOrg, ghName, ghToken, tag, dryRun = false, overwrite = overwriteAssets)(launchers: _*)
   }
 }
