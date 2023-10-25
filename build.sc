@@ -165,13 +165,13 @@ def publishVersion0 = T {
       .stripPrefix("v")
 }
 
-def ghOrg = "scala-cli"
+def ghOrg = "VirtusLab"
 def ghName = "java-class-name"
 trait JavaClassNamePublishModule extends PublishModule {
   import mill.scalalib.publish._
   def pomSettings = PomSettings(
     description = artifactName(),
-    organization = "io.github.alexarchambault.scala-cli",
+    organization = "org.virtuslab.scala-cli.java-class-name",
     url = s"https://github.com/$ghOrg/$ghName",
     licenses = Seq(License.`Apache-2.0`),
     versionControl = VersionControl.github(ghOrg, ghName),
