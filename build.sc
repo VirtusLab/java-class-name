@@ -20,7 +20,7 @@ trait JavaMainClassNativeImage extends NativeImage {
     )
   }
   def nativeImagePersist = System.getenv("CI") != null
-  def graalVmVersion = "22.1.0"
+  def graalVmVersion = "22.1.0.1"
   def nativeImageGraalVmJvmId = s"graalvm-java17:$graalVmVersion"
   def nativeImageName = "java-class-name"
   def nativeImageMainClass = "scala.cli.javaclassname.JavaClassName"
