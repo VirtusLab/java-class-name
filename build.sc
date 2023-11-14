@@ -38,15 +38,15 @@ trait JavaMainClassNativeImage extends NativeImage {
 }
 
 object `scala3-graal-processor` extends ScalaModule {
-  def scalaVersion = "3.1.3"
+  def scalaVersion = "3.3.1"
   def mainClass = Some("scala.cli.graal.CoursierCacheProcessor")
   def ivyDeps = Agg(
-    ivy"org.virtuslab.scala-cli::scala3-graal:0.1.6"
+    ivy"org.virtuslab.scala-cli::scala3-graal:1.0.5"
   )
 }
 
 object `java-class-name` extends ScalaModule with JavaMainClassNativeImage with JavaClassNamePublishModule {
-  def scalaVersion = "3.1.3"
+  def scalaVersion = "3.3.1"
 
   def nativeImageClassPath = T {
     // adapted from https://github.com/VirtusLab/scala-cli/blob/b19086697401827a6f8185040ceb248d8865bf21/build.sc#L732-L744
@@ -116,12 +116,12 @@ object `java-class-name` extends ScalaModule with JavaMainClassNativeImage with 
 }
 
 object `java-class-name-tests` extends ScalaModule {
-  def scalaVersion = "3.1.3"
+  def scalaVersion = "3.3.1"
   trait Tests extends super.Tests {
     def launcher: T[PathRef]
     def ivyDeps = super.ivyDeps() ++ Seq(
-      ivy"com.lihaoyi::os-lib:0.9.1",
-      ivy"com.lihaoyi::utest:0.7.11"
+      ivy"com.lihaoyi::os-lib:0.9.2",
+      ivy"com.lihaoyi::utest:0.8.2"
     )
     def testFramework = "utest.runner.Framework"
     def forkEnv = super.forkEnv() ++ Seq(
