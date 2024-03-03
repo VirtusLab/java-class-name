@@ -38,7 +38,7 @@ trait JavaMainClassNativeImage extends NativeImage {
 }
 
 object `scala3-graal-processor` extends ScalaModule {
-  def scalaVersion = "3.3.1"
+  def scalaVersion = "3.3.3"
   def mainClass = Some("scala.cli.graal.CoursierCacheProcessor")
   def ivyDeps = Agg(
     ivy"org.virtuslab.scala-cli::scala3-graal:1.1.2"
@@ -46,7 +46,7 @@ object `scala3-graal-processor` extends ScalaModule {
 }
 
 object `java-class-name` extends ScalaModule with JavaMainClassNativeImage with JavaClassNamePublishModule {
-  def scalaVersion = "3.3.1"
+  def scalaVersion = "3.3.3"
 
   def nativeImageClassPath = T {
     // adapted from https://github.com/VirtusLab/scala-cli/blob/b19086697401827a6f8185040ceb248d8865bf21/build.sc#L732-L744
@@ -116,7 +116,7 @@ object `java-class-name` extends ScalaModule with JavaMainClassNativeImage with 
 }
 
 object `java-class-name-tests` extends ScalaModule {
-  def scalaVersion = "3.3.1"
+  def scalaVersion = "3.3.3"
   trait Tests extends super.Tests {
     def launcher: T[PathRef]
     def ivyDeps = super.ivyDeps() ++ Seq(
