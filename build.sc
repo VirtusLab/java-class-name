@@ -121,7 +121,7 @@ object `java-class-name-tests` extends ScalaModule {
     def launcher: T[PathRef]
     def ivyDeps = super.ivyDeps() ++ Seq(
       ivy"com.lihaoyi::os-lib:0.10.3",
-      ivy"com.lihaoyi::utest:0.8.3"
+      ivy"com.lihaoyi::utest:0.8.4"
     )
     def testFramework = "utest.runner.Framework"
     def forkEnv = super.forkEnv() ++ Seq(
