@@ -120,7 +120,7 @@ object `java-class-name-tests` extends ScalaModule {
   trait Tests extends super.Tests {
     def launcher: T[PathRef]
     def ivyDeps = super.ivyDeps() ++ Seq(
-      ivy"com.lihaoyi::os-lib:0.10.4",
+      ivy"com.lihaoyi::os-lib:0.10.5",
       ivy"com.lihaoyi::utest:0.8.4"
     )
     def testFramework = "utest.runner.Framework"
