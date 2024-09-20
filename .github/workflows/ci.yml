@@ -35,7 +35,7 @@ jobs:
         if: runner.os == 'Windows'
       - name: Test
         run: ./mill -i java-class-name-tests.test
-      - uses: actions/upload-artifact@v2.2.4
+      - uses: actions/upload-artifact@v4
         with:
           name: launcher-${{ matrix.os }}
           path: artifacts/
@@ -61,7 +61,7 @@ jobs:
           ./mill -i "java-class-name.static.writeNativeImageScript" generate.sh "" && \
           ./generate.sh && \
           ./mill -i "java-class-name.static.copyToArtifacts" artifacts/
-      - uses: actions/upload-artifact@v2.2.4
+      - uses: actions/upload-artifact@v4
         with:
           name: launcher-linux-static
           path: artifacts/
@@ -89,7 +89,7 @@ jobs:
           ./mill -i "java-class-name.mostly-static.writeNativeImageScript" generate.sh "" && \
           ./generate.sh && \
           ./mill -i "java-class-name.mostly-static.copyToArtifacts" artifacts/
-      - uses: actions/upload-artifact@v2.2.4
+      - uses: actions/upload-artifact@v4
         with:
           name: launcher-linux-mostly-static
           path: artifacts/
