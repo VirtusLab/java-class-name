@@ -41,7 +41,7 @@ object `scala3-graal-processor` extends ScalaModule {
   def scalaVersion = "3.3.3"
   def mainClass = Some("scala.cli.graal.CoursierCacheProcessor")
   def ivyDeps = Agg(
-    ivy"org.virtuslab.scala-cli::scala3-graal:1.5.0"
+    ivy"org.virtuslab.scala-cli::scala3-graal:1.5.1"
   )
 }
 
