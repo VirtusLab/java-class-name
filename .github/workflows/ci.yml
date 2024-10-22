@@ -18,8 +18,8 @@ jobs:
         with:
           fetch-depth: 0
           submodules: true
-      - uses: coursier/cache-action@v6.3
-      - uses: coursier/setup-action@v1.2.0-M3
+      - uses: coursier/cache-action@v6
+      - uses: coursier/setup-action@v1
         with:
           jvm: temurin:17
       - run: |
@@ -53,8 +53,8 @@ jobs:
         with:
           fetch-depth: 0
           submodules: true
-      - uses: coursier/cache-action@v6.3
-      - uses: coursier/setup-action@v1.2.0-M3
+      - uses: coursier/cache-action@v6
+      - uses: coursier/setup-action@v1
         with:
           jvm: temurin:17
       - run: |
@@ -81,8 +81,8 @@ jobs:
         with:
           fetch-depth: 0
           submodules: true
-      - uses: coursier/cache-action@v6.3
-      - uses: coursier/setup-action@v1.2.0-M3
+      - uses: coursier/cache-action@v6
+      - uses: coursier/setup-action@v1
         with:
           jvm: temurin:17
       - run: |
@@ -111,8 +111,8 @@ jobs:
         with:
           fetch-depth: 0
           submodules: true
-      - uses: coursier/cache-action@v6.3
-      - uses: coursier/setup-action@v1.2.0-M3
+      - uses: coursier/cache-action@v6
+      - uses: coursier/setup-action@v1
         with:
           jvm: temurin:17
       - run: .github/scripts/gpg-setup.sh
