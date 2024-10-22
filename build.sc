@@ -115,9 +115,9 @@ object `java-class-name` extends ScalaModule with JavaMainClassNativeImage with 
   }
 }
 
-object `java-class-name-tests` extends ScalaModule {
+object `java-class-name-tests` extends ScalaModule with SbtModule {
   def scalaVersion = "3.3.3"
-  trait Tests extends super.Tests {
+  trait Tests extends ScalaModule with super.SbtModuleTests with TestModule.Utest {
     def launcher: T[PathRef]
     def ivyDeps = super.ivyDeps() ++ Seq(
       ivy"com.lihaoyi::os-lib:0.11.3",
