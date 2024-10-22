@@ -141,7 +141,7 @@ object `java-class-name-tests` extends ScalaModule {
   }
 }
 
-def csDockerVersion = "2.1.0-M5-18-gfebf9838c"
+def csDockerVersion = "2.1.14"
 
 def publishVersion0 = T {
   val state = VcsVersion.vcsState()
