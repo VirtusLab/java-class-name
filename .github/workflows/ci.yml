@@ -23,12 +23,12 @@ jobs:
         with:
           jvm: temurin:17
       - run: |
-          ./mill -i "java-class-name.writeNativeImageScript" generate.sh "" && \
+          ./mill -i "java-class-name.writeNativeImageScript" --scriptDest generate.sh --imageDest "" && \
           ./generate.sh && \
           ./mill -i "java-class-name.copyToArtifacts" artifacts/
         if: runner.os != 'Windows'
       - run: |
-          @call ./mill.bat -i "java-class-name.writeNativeImageScript" generate.bat ""
+          @call ./mill.bat -i "java-class-name.writeNativeImageScript" --scriptDest generate.bat --imageDest ""
           @call generate.bat
           @call ./mill.bat -i "java-class-name.copyToArtifacts" artifacts/
         shell: cmd
@@ -58,7 +58,7 @@ jobs:
         with:
           jvm: temurin:17
       - run: |
-          ./mill -i "java-class-name.static.writeNativeImageScript" generate.sh "" && \
+          ./mill -i "java-class-name.static.writeNativeImageScript" --scriptDest generate.sh --imageDest "" && \
           ./generate.sh && \
           ./mill -i "java-class-name.static.copyToArtifacts" artifacts/
       - uses: actions/upload-artifact@v4
@@ -86,7 +86,7 @@ jobs:
         with:
           jvm: temurin:17
       - run: |
-          ./mill -i "java-class-name.mostly-static.writeNativeImageScript" generate.sh "" && \
+          ./mill -i "java-class-name.mostly-static.writeNativeImageScript" --scriptDest generate.sh --imageDest "" && \
           ./generate.sh && \
           ./mill -i "java-class-name.mostly-static.copyToArtifacts" artifacts/
       - uses: actions/upload-artifact@v4
