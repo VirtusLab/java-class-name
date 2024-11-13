@@ -12,6 +12,16 @@ import scala.concurrent.duration.DurationInt
 
 import java.io.File
 
+object Versions {
+  def scala = "3.3.4"
+  def scalaCli = "1.5.1"
+  def graalVmVersion = "22.1.0"
+  def coursier = "2.1.14"
+  def osLib = "0.11.3"
+  def uTest = "0.8.4"
+  def jline = "3.25.0"
+}
+
 trait JavaMainClassNativeImage extends NativeImage {
 
   def nativeImageOptions = T{
@@ -20,8 +30,7 @@ trait JavaMainClassNativeImage extends NativeImage {
     )
   }
   def nativeImagePersist = System.getenv("CI") != null
-  def graalVmVersion = "22.1.0"
-  def nativeImageGraalVmJvmId = s"graalvm-java17:$graalVmVersion"
+  def nativeImageGraalVmJvmId = s"graalvm-java17:${Versions.graalVmVersion}"
   def nativeImageName = "java-class-name"
   def nativeImageMainClass = "scala.cli.javaclassname.JavaClassName"
 
@@ -37,17 +46,30 @@ trait JavaMainClassNativeImage extends NativeImage {
   }
 }
 
-object `scala3-graal-processor` extends ScalaModule {
-  def scalaVersion = "3.3.3"
-  def mainClass = Some("scala.cli.graal.CoursierCacheProcessor")
-  def ivyDeps = Agg(
-    ivy"org.virtuslab.scala-cli::scala3-graal:1.5.1"
+trait JavaClassNameModule extends ScalaModule {
+  override def scalaVersion = Versions.scala
+  override def transitiveIvyDeps = T {
+    super.transitiveIvyDeps()
+      .map(_.exclude("org.jline" -> "jline-reader"))
+      .map(_.exclude("org.jline" -> "jline-terminal"))
+      .map(_.exclude("org.jline" -> "jline-terminal-jna"))
+  }
+  def jlineDeps = Agg(
+    ivy"org.jline:jline-reader:${Versions.jline}",
+    ivy"org.jline:jline-terminal:${Versions.jline}",
+    ivy"org.jline:jline-terminal-jna:${Versions.jline}"
+  )
+  override def ivyDeps = super.ivyDeps() ++ jlineDeps
+}
+
+object `scala3-graal-processor` extends JavaClassNameModule {
+  override def mainClass = Some("scala.cli.graal.CoursierCacheProcessor")
+  override def ivyDeps = jlineDeps ++ Agg(
+    ivy"org.virtuslab.scala-cli::scala3-graal:${Versions.scalaCli}"
   )
 }
 
-object `java-class-name` extends ScalaModule with JavaMainClassNativeImage with JavaClassNamePublishModule {
-  def scalaVersion = "3.3.3"
-
+object `java-class-name` extends JavaClassNameModule with JavaMainClassNativeImage with JavaClassNamePublishModule {
   def nativeImageClassPath = T {
     // adapted from https://github.com/VirtusLab/scala-cli/blob/b19086697401827a6f8185040ceb248d8865bf21/build.sc#L732-L744
 
@@ -69,11 +91,11 @@ object `java-class-name` extends ScalaModule with JavaMainClassNativeImage with 
       System.err.println(s"  $f")
     cp.split(File.pathSeparator).toSeq.map(p => mill.PathRef(os.Path(p)))
   }
-  def ivyDeps = super.ivyDeps() ++ Seq(
-    ivy"org.scala-lang::scala3-compiler:${scalaVersion()}"
+  override def ivyDeps = super.ivyDeps() ++ jlineDeps ++ Agg(
+    ivy"org.scala-lang::scala3-compiler:${Versions.scala}"
   )
-  def compileIvyDeps = super.compileIvyDeps() ++ Seq(
-    ivy"org.graalvm.nativeimage:svm:$graalVmVersion"
+  override def compileIvyDeps = super.compileIvyDeps() ++ Agg(
+    ivy"org.graalvm.nativeimage:svm:${Versions.graalVmVersion}"
   )
 
   object static extends JavaMainClassNativeImage {
@@ -91,7 +113,7 @@ object `java-class-name` extends ScalaModule with JavaMainClassNativeImage with 
       Some(
         NativeImage.linuxStaticParams(
           "scala-cli-base-musl:latest",
-          s"https://github.com/coursier/coursier/releases/download/v$csDockerVersion/cs-x86_64-pc-linux.gz"
+          s"https://github.com/coursier/coursier/releases/download/v${Versions.coursier}/cs-x86_64-pc-linux.gz"
         )
       )
     }
@@ -109,19 +131,18 @@ object `java-class-name` extends ScalaModule with JavaMainClassNativeImage with 
     def nativeImageDockerParams = Some(
       NativeImage.linuxMostlyStaticParams(
         "ubuntu:18.04", // TODO Pin that?
-        s"https://github.com/coursier/coursier/releases/download/v$csDockerVersion/cs-x86_64-pc-linux.gz"
+        s"https://github.com/coursier/coursier/releases/download/v${Versions.coursier}/cs-x86_64-pc-linux.gz"
       )
     )
   }
 }
 
-object `java-class-name-tests` extends ScalaModule with SbtModule {
-  def scalaVersion = "3.3.3"
+object `java-class-name-tests` extends JavaClassNameModule with SbtModule {
   trait Tests extends ScalaModule with super.SbtModuleTests with TestModule.Utest {
     def launcher: T[PathRef]
-    def ivyDeps = super.ivyDeps() ++ Seq(
-      ivy"com.lihaoyi::os-lib:0.11.3",
-      ivy"com.lihaoyi::utest:0.8.4"
+    def ivyDeps = super.ivyDeps() ++ jlineDeps ++ Seq(
+      ivy"com.lihaoyi::os-lib:${Versions.osLib}",
+      ivy"com.lihaoyi::utest:${Versions.uTest}"
     )
     def testFramework = "utest.runner.Framework"
     def forkEnv = super.forkEnv() ++ Seq(
@@ -140,8 +161,6 @@ object `java-class-name-tests` extends ScalaModule with SbtModule {
     def launcher = `java-class-name`.`mostly-static`.nativeImage()
   }
 }
-
-def csDockerVersion = "2.1.14"
 
 def publishVersion0 = T {
   val state = VcsVersion.vcsState()
