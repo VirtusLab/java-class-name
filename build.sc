@@ -19,7 +19,7 @@ object Versions {
   def coursier = "2.1.14"
   def osLib = "0.11.3"
   def uTest = "0.8.4"
-  def jline = "3.25.0"
+  def jline = "3.25.1"
 }
 
 trait JavaMainClassNativeImage extends NativeImage {
