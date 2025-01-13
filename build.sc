@@ -18,7 +18,7 @@ object Versions {
   def graalVmVersion = "22.1.0"
   def coursier = "2.1.14"
   def osLib = "0.11.3"
-  def uTest = "0.8.4"
+  def uTest = "0.8.5"
   def jline = "3.25.0"
 }
 
