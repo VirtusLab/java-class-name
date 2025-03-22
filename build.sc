@@ -15,7 +15,7 @@ import java.io.File
 object Versions {
   def scala = "3.3.4"
   def scalaCli = "1.7.1"
-  def graalVmVersion = "22.1.0"
+  def graalVmVersion = "22.1.0.1"
   def coursier = "2.1.14"
   def osLib = "0.11.4"
   def uTest = "0.8.5"
