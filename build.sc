@@ -13,7 +13,7 @@ import scala.concurrent.duration.DurationInt
 import java.io.File
 
 object Versions {
-  def scala = "3.3.4"
+  def scala = "3.3.5"
   def scalaCli = "1.7.1"
   def graalVmVersion = "22.1.0"
   def coursier = "2.1.14"
@@ -53,11 +53,15 @@ trait JavaClassNameModule extends ScalaModule {
       .map(_.exclude("org.jline" -> "jline-reader"))
       .map(_.exclude("org.jline" -> "jline-terminal"))
       .map(_.exclude("org.jline" -> "jline-terminal-jna"))
+      .map(_.exclude("org.jline" -> "jline-terminal-jni"))
+      .map(_.exclude("org.jline" -> "jline-native"))
   }
   def jlineDeps = Agg(
     ivy"org.jline:jline-reader:${Versions.jline}",
     ivy"org.jline:jline-terminal:${Versions.jline}",
-    ivy"org.jline:jline-terminal-jna:${Versions.jline}"
+    ivy"org.jline:jline-terminal-jna:${Versions.jline}",
+    ivy"org.jline:jline-terminal-jni:${Versions.jline}",
+    ivy"org.jline:jline-native:${Versions.jline}"
   )
   override def ivyDeps = super.ivyDeps() ++ jlineDeps
 }
