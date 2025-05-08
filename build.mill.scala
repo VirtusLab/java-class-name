@@ -22,6 +22,7 @@ object Versions {
   def osLib = "0.11.4"
   def uTest = "0.8.5"
   def jline = "3.25.0"
+  def ubuntu = "24.04"
 }
 
 trait JavaMainClassNativeImage extends NativeImage {
@@ -152,7 +153,7 @@ object `java-class-name` extends JavaClassNameModule with JavaMainClassNativeIma
 
     def nativeImageDockerParams: Target[Option[NativeImage.DockerParams]] = Some(
       NativeImage.linuxMostlyStaticParams(
-        "ubuntu:18.04", // TODO Pin that?
+        s"ubuntu:${Versions.ubuntu}",
         s"https://github.com/coursier/coursier/releases/download/v${Versions.coursier}/cs-x86_64-pc-linux.gz"
       )
     )
