@@ -1,15 +1,15 @@
 import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.4.1`
 import $ivy.`io.github.alexarchambault.mill::mill-native-image::0.1.31-1`
 import $ivy.`io.github.alexarchambault.mill::mill-native-image-upload:0.1.31-1`
-
 import de.tobiasroeser.mill.vcs.version._
 import io.github.alexarchambault.millnativeimage.NativeImage
 import io.github.alexarchambault.millnativeimage.upload.Upload
 import mill._
 import mill.scalalib._
-import coursier.core.Version
-import scala.concurrent.duration.DurationInt
+import coursier.core.{Dependency, DependencyManagement}
+import coursier.version.VersionConstraint
 
+import scala.concurrent.duration.DurationInt
 import java.io.File
 
 object Versions {
@@ -23,8 +23,7 @@ object Versions {
 }
 
 trait JavaMainClassNativeImage extends NativeImage {
-
-  def nativeImageOptions = T{
+  def nativeImageOptions = T {
     super.nativeImageOptions() ++ Seq(
       "--no-fallback"
     )
@@ -33,14 +32,15 @@ trait JavaMainClassNativeImage extends NativeImage {
   def nativeImageGraalVmJvmId = s"graalvm-java17:${Versions.graalVmVersion}"
   def nativeImageName = "java-class-name"
   def nativeImageMainClass = "scala.cli.javaclassname.JavaClassName"
-
   def nameSuffix = ""
+
   def copyToArtifacts(directory: String = "artifacts/") = T.command {
-    val _ = Upload.copyLauncher(
-      nativeImage().path,
-      directory,
-      "java-class-name",
+    val _ = Upload.copyLauncher0(
+      nativeLauncher = nativeImage().path,
+      directory = directory,
+      name = "java-class-name",
       compress = true,
+      workspace = T.workspace,
       suffix = nameSuffix
     )
   }
@@ -48,22 +48,29 @@ trait JavaMainClassNativeImage extends NativeImage {
 
 trait JavaClassNameModule extends ScalaModule {
   override def scalaVersion = Versions.scala
-  override def transitiveIvyDeps = T {
-    super.transitiveIvyDeps()
-      .map(_.exclude("org.jline" -> "jline-reader"))
-      .map(_.exclude("org.jline" -> "jline-terminal"))
-      .map(_.exclude("org.jline" -> "jline-terminal-jna"))
-      .map(_.exclude("org.jline" -> "jline-terminal-jni"))
-      .map(_.exclude("org.jline" -> "jline-native"))
-  }
+
+  private def jlineOrg = "org.jline"
   def jlineDeps = Agg(
-    ivy"org.jline:jline-reader:${Versions.jline}",
-    ivy"org.jline:jline-terminal:${Versions.jline}",
-    ivy"org.jline:jline-terminal-jna:${Versions.jline}",
-    ivy"org.jline:jline-terminal-jni:${Versions.jline}",
-    ivy"org.jline:jline-native:${Versions.jline}"
+    ivy"$jlineOrg:jline-reader:${Versions.jline}",
+    ivy"$jlineOrg:jline-terminal:${Versions.jline}",
+    ivy"$jlineOrg:jline-terminal-jna:${Versions.jline}",
+    ivy"$jlineOrg:jline-terminal-jni:${Versions.jline}",
+    ivy"$jlineOrg:jline-native:${Versions.jline}"
   )
-  override def ivyDeps = super.ivyDeps() ++ jlineDeps
+
+  override def coursierDependency: Dependency =
+    super.coursierDependency
+      .addOverrides(
+        jlineDeps.toSeq.map(jd => DependencyManagement.Key.from(jd.toDependency(jd.version, jd.version, "")) ->
+          DependencyManagement.Values.empty.withVersionConstraint(VersionConstraint.Lazy(Versions.jline)))
+      )
+
+  override def allIvyDeps = T {
+    super.allIvyDeps()
+      .map(_.exclude(jlineOrg -> "jline-*")) ++ jlineDeps
+  }
+
+  override def ivyDeps = super.ivyDeps().map(_.exclude("org.jline" -> "jline-*")) ++ jlineDeps
 }
 
 object `scala3-graal-processor` extends JavaClassNameModule {
@@ -78,41 +85,47 @@ object `java-class-name` extends JavaClassNameModule with JavaMainClassNativeIma
     // adapted from https://github.com/VirtusLab/scala-cli/blob/b19086697401827a6f8185040ceb248d8865bf21/build.sc#L732-L744
 
     val classpath = runClasspath().map(_.path).mkString(File.pathSeparator)
-    val cache     = T.dest / "native-cp"
+    val cache = T.dest / "native-cp"
     // `scala3-graal-processor`.run() do not give me output and I cannot pass dynamically computed values like classpath
     System.err.println("Calling scala3 graal processor on")
     for (f <- classpath.split(File.pathSeparator))
       System.err.println(s"  $f")
-    val res = mill.modules.Jvm.callSubprocess(
+    val res = mill.util.Jvm.callProcess(
       mainClass = `scala3-graal-processor`.finalMainClass(),
       classPath = `scala3-graal-processor`.runClasspath().map(_.path),
-      mainArgs = Seq(cache.toNIO.toString, classpath),
-      workingDir = os.pwd
+      mainArgs = Seq(cache.toNIO.toString, classpath)
     )
     val cp = res.out.text.trim
+    if (cp.isBlank) System.err.println("class path can't be empty!")
+    assert(cp.nonEmpty)
     System.err.println("Processed class path:")
     for (f <- cp.split(File.pathSeparator))
       System.err.println(s"  $f")
     cp.split(File.pathSeparator).toSeq.map(p => mill.PathRef(os.Path(p)))
   }
+
   override def ivyDeps = super.ivyDeps() ++ jlineDeps ++ Agg(
     ivy"org.scala-lang::scala3-compiler:${Versions.scala}"
   )
+
   override def compileIvyDeps = super.compileIvyDeps() ++ Agg(
     ivy"org.graalvm.nativeimage:svm:${Versions.graalVmVersion}"
   )
 
   object static extends JavaMainClassNativeImage {
     def nameSuffix = "-static"
-    def nativeImageClassPath = T{
+
+    def nativeImageClassPath = T {
       `java-class-name`.nativeImageClassPath()
     }
+
     def buildHelperImage = T {
       os.proc("docker", "build", "-t", "scala-cli-base-musl:latest", ".")
-        .call(cwd = os.pwd / "musl-image", stdout = os.Inherit)
+        .call(cwd = T.workspace / "musl-image", stdout = os.Inherit)
       ()
     }
-    def nativeImageDockerParams = T{
+
+    def nativeImageDockerParams = T {
       buildHelperImage()
       Some(
         NativeImage.linuxStaticParams(
@@ -121,6 +134,7 @@ object `java-class-name` extends JavaClassNameModule with JavaMainClassNativeIma
         )
       )
     }
+
     def writeNativeImageScript(scriptDest: String, imageDest: String = "") = T.command {
       buildHelperImage()
       super.writeNativeImageScript(scriptDest, imageDest)()
@@ -129,9 +143,10 @@ object `java-class-name` extends JavaClassNameModule with JavaMainClassNativeIma
 
   object `mostly-static` extends JavaMainClassNativeImage {
     def nameSuffix = "-mostly-static"
-    def nativeImageClassPath = T{
+    def nativeImageClassPath = T {
       `java-class-name`.nativeImageClassPath()
     }
+
     def nativeImageDockerParams = Some(
       NativeImage.linuxMostlyStaticParams(
         "ubuntu:18.04", // TODO Pin that?
@@ -142,24 +157,29 @@ object `java-class-name` extends JavaClassNameModule with JavaMainClassNativeIma
 }
 
 object `java-class-name-tests` extends JavaClassNameModule with SbtModule {
-  trait Tests extends ScalaModule with super.SbtModuleTests with TestModule.Utest {
+  trait Tests extends ScalaModule with super.SbtTests with TestModule.Utest {
     def launcher: T[PathRef]
     def ivyDeps = super.ivyDeps() ++ jlineDeps ++ Seq(
       ivy"com.lihaoyi::os-lib:${Versions.osLib}",
       ivy"com.lihaoyi::utest:${Versions.uTest}"
     )
+
     def testFramework = "utest.runner.Framework"
+
     def forkEnv = super.forkEnv() ++ Seq(
       "JAVA_CLASS_NAME_CLI" -> launcher().path.toString
     )
   }
+
   object test extends Tests {
     def launcher = `java-class-name`.nativeImage()
   }
+
   object static extends Tests {
     def sources = T.sources(`java-class-name-tests`.test.sources())
     def launcher = `java-class-name`.static.nativeImage()
   }
+
   object `mostly-static` extends Tests {
     def sources = T.sources(`java-class-name-tests`.test.sources())
     def launcher = `java-class-name`.`mostly-static`.nativeImage()
@@ -190,8 +210,11 @@ def publishVersion0 = T {
 
 def ghOrg = "VirtusLab"
 def ghName = "java-class-name"
+
 trait JavaClassNamePublishModule extends PublishModule {
+
   import mill.scalalib.publish._
+
   def pomSettings = PomSettings(
     description = artifactName(),
     organization = "org.virtuslab.scala-cli.java-class-name",
@@ -213,6 +236,7 @@ trait JavaClassNamePublishModule extends PublishModule {
       )
     )
   )
+
   def publishVersion =
     publishVersion0()
 }
@@ -226,9 +250,9 @@ object ci extends Module {
   }
 
   private def publishSonatype0(
-      data: Seq[PublishModule.PublishData],
-      log: mill.api.Logger
-  ): Unit = {
+                                data: Seq[PublishModule.PublishData],
+                                log: mill.api.Logger
+                              ): Unit = {
 
     val credentials = sys.env("SONATYPE_USERNAME") + ":" + sys.env("SONATYPE_PASSWORD")
     val pgpPassword = sys.env("PGP_PASSWORD")
@@ -276,7 +300,7 @@ object ci extends Module {
   def upload(directory: String = "artifacts/") = T.command {
     val version = publishVersion0()
 
-    val path = os.Path(directory, os.pwd)
+    val path = os.Path(directory, T.workspace)
     val launchers = os.list(path).filter(os.isFile(_)).map { path =>
       path -> path.last
     }
