@@ -13,7 +13,7 @@ import scala.concurrent.duration.DurationInt
 import java.io.File
 
 object Versions {
-  def scala = "3.3.5"
+  def scala = "3.3.6"
   def scalaCli = "1.7.1"
   def graalVmVersion = "22.1.0"
   def coursier = "2.1.24"
