@@ -31,9 +31,8 @@ object JavaClassNameTests extends TestSuite {
         val className = res.out.text().trim
         assert(className == expectedClassName)
       }
-      finally {
+      finally
         os.remove.all(tmpDir)
-      }
     }
   }
 

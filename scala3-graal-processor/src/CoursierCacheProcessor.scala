@@ -4,7 +4,6 @@
 package scala.cli.graal
 
 import java.io.File
-import java.nio.channels.FileChannel
 
 object CoursierCacheProcessor {
   def main(args: Array[String]) = {

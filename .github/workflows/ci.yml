@@ -8,6 +8,10 @@ on:
   pull_request:
 jobs:
   generate-launchers:
+    timeout-minutes: 30
+    needs:
+      - scalafix
+      - format
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -47,6 +51,10 @@ jobs:
           UPLOAD_GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   generate-static-launcher:
+    timeout-minutes: 30
+    needs:
+      - scalafix
+      - format
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v2
@@ -75,6 +83,10 @@ jobs:
           UPLOAD_GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   generate-mostly-static-launcher:
+    timeout-minutes: 30
+    needs:
+      - scalafix
+      - format
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v2
@@ -102,8 +114,40 @@ jobs:
         env:
           UPLOAD_GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  scalafix:
+    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: true
+      - uses: coursier/cache-action@v6
+      - uses: coursier/setup-action@v1
+        with:
+          jvm: temurin:17
+      - name: Run scalafix
+        run: ./mill -i __.fix --check
+
+  format:
+    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: true
+      - uses: VirtusLab/scala-cli-setup@v1
+      - run: scala-cli fmt . --check
+
   publish:
-    needs: generate-launchers
+    timeout-minutes: 30
+    needs:
+      - generate-launchers
+      - generate-static-launcher
+      - generate-mostly-static-launcher
+      - scalafix
+      - format
     if: github.event_name == 'push'
     runs-on: ubuntu-24.04
     steps:

@@ -1,6 +1,7 @@
 import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.4.1`
 import $ivy.`io.github.alexarchambault.mill::mill-native-image::0.1.31-1`
 import $ivy.`io.github.alexarchambault.mill::mill-native-image-upload:0.1.31-1`
+import $ivy.`com.goyeau::mill-scalafix::0.5.1`
 import de.tobiasroeser.mill.vcs.version._
 import io.github.alexarchambault.millnativeimage.NativeImage
 import io.github.alexarchambault.millnativeimage.upload.Upload
@@ -13,15 +14,23 @@ import mill.api.Loose
 import scala.annotation.unused
 import scala.concurrent.duration.DurationInt
 import java.io.File
+import com.goyeau.mill.scalafix.ScalafixModule
 
 object Versions {
   def scala = "3.3.6"
+
   def scalaCli = "1.7.1"
+
   def graalVmVersion = "22.1.0"
+
   def coursier = "2.1.24"
+
   def osLib = "0.11.4"
+
   def uTest = "0.8.5"
+
   def jline = "3.25.0"
+
   def ubuntu = "24.04"
 }
 
@@ -31,10 +40,15 @@ trait JavaMainClassNativeImage extends NativeImage {
       "--no-fallback"
     )
   }
+
   def nativeImagePersist: Boolean = System.getenv("CI") != null
+
   def nativeImageGraalVmJvmId = s"graalvm-java17:${Versions.graalVmVersion}"
+
   def nativeImageName = "java-class-name"
+
   def nativeImageMainClass = "scala.cli.javaclassname.JavaClassName"
+
   def nameSuffix = ""
 
   @unused
@@ -50,10 +64,14 @@ trait JavaMainClassNativeImage extends NativeImage {
   }
 }
 
-trait JavaClassNameModule extends ScalaModule {
+trait JavaClassNameModule extends ScalaModule with ScalafixModule {
+  override def scalacOptions: Target[Seq[String]] =
+    super.scalacOptions.map(_ ++ Seq("-Wunused:all"))
+
   override def scalaVersion: Target[String] = Versions.scala
 
   private def jlineOrg = "org.jline"
+
   def jlineDeps: Loose.Agg[Dep] = Agg(
     ivy"$jlineOrg:jline-reader:${Versions.jline}",
     ivy"$jlineOrg:jline-terminal:${Versions.jline}",
@@ -65,8 +83,12 @@ trait JavaClassNameModule extends ScalaModule {
   override def coursierDependency: Dependency =
     super.coursierDependency
       .addOverrides(
-        jlineDeps.toSeq.map(jd => DependencyManagement.Key.from(jd.toDependency(jd.version, jd.version, "")) ->
-          DependencyManagement.Values.empty.withVersionConstraint(VersionConstraint.Lazy(Versions.jline)))
+        jlineDeps.toSeq.map(jd =>
+          DependencyManagement.Key.from(jd.toDependency(jd.version, jd.version, "")) ->
+            DependencyManagement.Values.empty.withVersionConstraint(
+              VersionConstraint.Lazy(Versions.jline)
+            )
+        )
       )
 
   override def allIvyDeps: Target[Agg[Dep]] = Task {
@@ -74,22 +96,25 @@ trait JavaClassNameModule extends ScalaModule {
       .map(_.exclude(jlineOrg -> "jline-*")) ++ jlineDeps
   }
 
-  override def ivyDeps: Target[Agg[Dep]] = super.ivyDeps().map(_.exclude("org.jline" -> "jline-*")) ++ jlineDeps
+  override def ivyDeps: Target[Agg[Dep]] =
+    super.ivyDeps().map(_.exclude("org.jline" -> "jline-*")) ++ jlineDeps
 }
 
 object `scala3-graal-processor` extends JavaClassNameModule {
   override def mainClass: Target[Option[String]] = Some("scala.cli.graal.CoursierCacheProcessor")
+
   override def ivyDeps: Target[Agg[Dep]] = jlineDeps ++ Agg(
     ivy"org.virtuslab.scala-cli::scala3-graal:${Versions.scalaCli}"
   )
 }
 
-object `java-class-name` extends JavaClassNameModule with JavaMainClassNativeImage with JavaClassNamePublishModule {
+object `java-class-name` extends JavaClassNameModule with JavaMainClassNativeImage
+    with JavaClassNamePublishModule {
   def nativeImageClassPath: Target[Seq[PathRef]] = Task {
     // adapted from https://github.com/VirtusLab/scala-cli/blob/b19086697401827a6f8185040ceb248d8865bf21/build.sc#L732-L744
 
     val classpath = runClasspath().map(_.path).mkString(File.pathSeparator)
-    val cache = Task.dest / "native-cp"
+    val cache     = Task.dest / "native-cp"
     // `scala3-graal-processor`.run() do not give me output and I cannot pass dynamically computed values like classpath
     System.err.println("Calling scala3 graal processor on")
     for (f <- classpath.split(File.pathSeparator))
@@ -139,14 +164,16 @@ object `java-class-name` extends JavaClassNameModule with JavaMainClassNativeIma
       )
     }
 
-    def writeNativeImageScript(scriptDest: String, imageDest: String = ""): Command[Unit] = Task.Command {
-      buildHelperImage()
-      super.writeNativeImageScript(scriptDest, imageDest)()
-    }
+    def writeNativeImageScript(scriptDest: String, imageDest: String = ""): Command[Unit] =
+      Task.Command {
+        buildHelperImage()
+        super.writeNativeImageScript(scriptDest, imageDest)()
+      }
   }
 
   object `mostly-static` extends JavaMainClassNativeImage {
     def nameSuffix = "-mostly-static"
+
     def nativeImageClassPath: Target[Seq[PathRef]] = Task {
       `java-class-name`.nativeImageClassPath()
     }
@@ -163,6 +190,7 @@ object `java-class-name` extends JavaClassNameModule with JavaMainClassNativeIma
 object `java-class-name-tests` extends JavaClassNameModule with SbtModule {
   trait Tests extends ScalaModule with super.SbtTests with TestModule.Utest {
     def launcher: Target[PathRef]
+
     def ivyDeps: Target[Agg[Dep]] = super.ivyDeps() ++ jlineDeps ++ Seq(
       ivy"com.lihaoyi::os-lib:${Versions.osLib}",
       ivy"com.lihaoyi::utest:${Versions.uTest}"
@@ -181,11 +209,13 @@ object `java-class-name-tests` extends JavaClassNameModule with SbtModule {
 
   object static extends Tests {
     def sources: Target[Seq[PathRef]] = Task.Sources(`java-class-name-tests`.test.sources())
+
     def launcher: Target[PathRef] = `java-class-name`.static.nativeImage()
   }
 
   object `mostly-static` extends Tests {
     def sources: Target[Seq[PathRef]] = Task.Sources(`java-class-name-tests`.test.sources())
+
     def launcher: Target[PathRef] = `java-class-name`.`mostly-static`.nativeImage()
   }
 }
@@ -205,14 +235,15 @@ def publishVersion0: Target[String] = Task {
     Some(versionOrEmpty)
       .filter(_.nonEmpty)
       .getOrElse(state.format())
-  } else
+  }
+  else
     state
       .lastTag
       .getOrElse(state.format())
       .stripPrefix("v")
 }
 
-def ghOrg = "VirtusLab"
+def ghOrg  = "VirtusLab"
 def ghName = "java-class-name"
 
 trait JavaClassNamePublishModule extends PublishModule {
@@ -247,21 +278,22 @@ trait JavaClassNamePublishModule extends PublishModule {
 @unused
 object ci extends Module {
   @unused
-  def publishSonatype(tasks: mill.main.Tasks[PublishModule.PublishData]): Command[Unit] = Task.Command {
-    publishSonatype0(
-      data = define.Target.sequence(tasks.value)(),
-      log = Task.ctx().log
-    )
-  }
+  def publishSonatype(tasks: mill.main.Tasks[PublishModule.PublishData]): Command[Unit] =
+    Task.Command {
+      publishSonatype0(
+        data = define.Target.sequence(tasks.value)(),
+        log = Task.ctx().log
+      )
+    }
 
   private def publishSonatype0(
-                                data: Seq[PublishModule.PublishData],
-                                log: mill.api.Logger
-                              ): Unit = {
+    data: Seq[PublishModule.PublishData],
+    log: mill.api.Logger
+  ): Unit = {
 
     val credentials = sys.env("SONATYPE_USERNAME") + ":" + sys.env("SONATYPE_PASSWORD")
     val pgpPassword = sys.env("PGP_PASSWORD")
-    val timeout = 10.minutes
+    val timeout     = 10.minutes
 
     val artifacts = data.map { case PublishModule.PublishData(a, s) =>
       (s.map { case (p, f) => (p.path, f) }, a)
@@ -269,7 +301,7 @@ object ci extends Module {
 
     val isRelease = {
       val versions = artifacts.map(_._2.version).toSet
-      val set = versions.map(!_.endsWith("-SNAPSHOT"))
+      val set      = versions.map(!_.endsWith("-SNAPSHOT"))
       assert(
         set.size == 1,
         s"Found both snapshot and non-snapshot versions: ${versions.toVector.sorted.mkString(", ")}"
@@ -285,8 +317,10 @@ object ci extends Module {
         "--detach-sign",
         "--batch=true",
         "--yes",
-        "--pinentry-mode", "loopback",
-        "--passphrase", pgpPassword,
+        "--pinentry-mode",
+        "loopback",
+        "--passphrase",
+        pgpPassword,
         "--armor",
         "--use-agent"
       ),
@@ -315,6 +349,13 @@ object ci extends Module {
       if (version.endsWith("-SNAPSHOT")) ("nightly", true)
       else ("v" + version, false)
 
-    Upload.upload(ghOrg, ghName, ghToken, tag, dryRun = false, overwrite = overwriteAssets)(launchers: _*)
+    Upload.upload(
+      ghOrg,
+      ghName,
+      ghToken,
+      tag,
+      dryRun = false,
+      overwrite = overwriteAssets
+    )(launchers: _*)
   }
 }
