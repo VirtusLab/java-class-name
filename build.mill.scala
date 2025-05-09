@@ -19,7 +19,7 @@ import com.goyeau.mill.scalafix.ScalafixModule
 object Versions {
   def scala = "3.3.6"
 
-  def scalaCli = "1.7.1"
+  def scalaCli = "1.8.0"
 
   def graalVmVersion = "22.1.0"
 
