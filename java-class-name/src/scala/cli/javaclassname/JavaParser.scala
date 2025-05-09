@@ -1,14 +1,13 @@
 package scala.cli.javaclassname
 
+import dotty.tools.dotc.ast.untpd.ModuleDef
 import dotty.tools.dotc.ast.{Trees, untpd}
 import dotty.tools.dotc.core.Contexts.{Context, ContextBase}
+import dotty.tools.dotc.core.Flags
 import dotty.tools.dotc.parsing.JavaParsers.OutlineJavaParser
 import dotty.tools.dotc.util.SourceFile
 import dotty.tools.io.VirtualFile
-import dotty.tools.dotc.ast.untpd.{ModuleDef, PackageDef, Tree, TypeDef}
-import dotty.tools.dotc.core.Symbols.ClassSymbol
-import dotty.tools.dotc.core.{SymbolLoaders, Flags}
-import dotty.tools.dotc.ast.untpd.Modifiers
+
 import scala.io.Codec
 
 object JavaParser {

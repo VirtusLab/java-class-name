@@ -1,6 +1,7 @@
 import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.4.1`
 import $ivy.`io.github.alexarchambault.mill::mill-native-image::0.1.31-1`
 import $ivy.`io.github.alexarchambault.mill::mill-native-image-upload:0.1.31-1`
+import $ivy.`com.goyeau::mill-scalafix::0.5.1`
 import de.tobiasroeser.mill.vcs.version._
 import io.github.alexarchambault.millnativeimage.NativeImage
 import io.github.alexarchambault.millnativeimage.upload.Upload
@@ -13,15 +14,23 @@ import mill.api.Loose
 import scala.annotation.unused
 import scala.concurrent.duration.DurationInt
 import java.io.File
+import com.goyeau.mill.scalafix.ScalafixModule
 
 object Versions {
   def scala = "3.3.6"
+
   def scalaCli = "1.7.1"
+
   def graalVmVersion = "22.1.0"
+
   def coursier = "2.1.24"
+
   def osLib = "0.11.4"
+
   def uTest = "0.8.5"
+
   def jline = "3.25.0"
+
   def ubuntu = "24.04"
 }
 
@@ -31,10 +40,15 @@ trait JavaMainClassNativeImage extends NativeImage {
       "--no-fallback"
     )
   }
+
   def nativeImagePersist: Boolean = System.getenv("CI") != null
+
   def nativeImageGraalVmJvmId = s"graalvm-java17:${Versions.graalVmVersion}"
+
   def nativeImageName = "java-class-name"
+
   def nativeImageMainClass = "scala.cli.javaclassname.JavaClassName"
+
   def nameSuffix = ""
 
   @unused
@@ -50,10 +64,13 @@ trait JavaMainClassNativeImage extends NativeImage {
   }
 }
 
-trait JavaClassNameModule extends ScalaModule {
+trait JavaClassNameModule extends ScalaModule with ScalafixModule {
+  override def scalacOptions: Target[Seq[String]] = super.scalacOptions.map(_ ++ Seq("-Wunused:all"))
+
   override def scalaVersion: Target[String] = Versions.scala
 
   private def jlineOrg = "org.jline"
+
   def jlineDeps: Loose.Agg[Dep] = Agg(
     ivy"$jlineOrg:jline-reader:${Versions.jline}",
     ivy"$jlineOrg:jline-terminal:${Versions.jline}",
@@ -79,6 +96,7 @@ trait JavaClassNameModule extends ScalaModule {
 
 object `scala3-graal-processor` extends JavaClassNameModule {
   override def mainClass: Target[Option[String]] = Some("scala.cli.graal.CoursierCacheProcessor")
+
   override def ivyDeps: Target[Agg[Dep]] = jlineDeps ++ Agg(
     ivy"org.virtuslab.scala-cli::scala3-graal:${Versions.scalaCli}"
   )
@@ -147,6 +165,7 @@ object `java-class-name` extends JavaClassNameModule with JavaMainClassNativeIma
 
   object `mostly-static` extends JavaMainClassNativeImage {
     def nameSuffix = "-mostly-static"
+
     def nativeImageClassPath: Target[Seq[PathRef]] = Task {
       `java-class-name`.nativeImageClassPath()
     }
@@ -163,6 +182,7 @@ object `java-class-name` extends JavaClassNameModule with JavaMainClassNativeIma
 object `java-class-name-tests` extends JavaClassNameModule with SbtModule {
   trait Tests extends ScalaModule with super.SbtTests with TestModule.Utest {
     def launcher: Target[PathRef]
+
     def ivyDeps: Target[Agg[Dep]] = super.ivyDeps() ++ jlineDeps ++ Seq(
       ivy"com.lihaoyi::os-lib:${Versions.osLib}",
       ivy"com.lihaoyi::utest:${Versions.uTest}"
@@ -181,11 +201,13 @@ object `java-class-name-tests` extends JavaClassNameModule with SbtModule {
 
   object static extends Tests {
     def sources: Target[Seq[PathRef]] = Task.Sources(`java-class-name-tests`.test.sources())
+
     def launcher: Target[PathRef] = `java-class-name`.static.nativeImage()
   }
 
   object `mostly-static` extends Tests {
     def sources: Target[Seq[PathRef]] = Task.Sources(`java-class-name-tests`.test.sources())
+
     def launcher: Target[PathRef] = `java-class-name`.`mostly-static`.nativeImage()
   }
 }

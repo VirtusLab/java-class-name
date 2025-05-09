@@ -102,8 +102,26 @@ jobs:
         env:
           UPLOAD_GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  scalafix:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: true
+      - uses: coursier/cache-action@v6
+      - uses: coursier/setup-action@v1
+        with:
+          jvm: temurin:17
+      - name: Run scalafix
+        run: ./mill -i __.fix --check
+
   publish:
-    needs: generate-launchers
+    needs:
+      - generate-launchers
+      - generate-static-launcher
+      - generate-mostly-static-launcher
+      - scalafix
     if: github.event_name == 'push'
     runs-on: ubuntu-24.04
     steps:
