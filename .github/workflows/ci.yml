@@ -8,6 +8,7 @@ on:
   pull_request:
 jobs:
   generate-launchers:
+    timeout-minutes: 30
     needs:
       - scalafix
       - format
@@ -50,6 +51,7 @@ jobs:
           UPLOAD_GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   generate-static-launcher:
+    timeout-minutes: 30
     needs:
       - scalafix
       - format
@@ -81,6 +83,7 @@ jobs:
           UPLOAD_GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   generate-mostly-static-launcher:
+    timeout-minutes: 30
     needs:
       - scalafix
       - format
@@ -138,6 +141,7 @@ jobs:
       - run: scala-cli fmt . --check
 
   publish:
+    timeout-minutes: 30
     needs:
       - generate-launchers
       - generate-static-launcher
