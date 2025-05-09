@@ -119,7 +119,7 @@ jobs:
         env:
           PGP_SECRET: ${{ secrets.PGP_SECRET }}
       - name: Publish
-        run: ./mill -i ci.publishSonatype __.publishArtifacts
+        run: ./mill -i ci.publishSonatype --tasks __.publishArtifacts
         env:
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
