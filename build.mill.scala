@@ -29,7 +29,7 @@ object Versions {
 
   def uTest = "0.8.5"
 
-  def jline = "3.25.0"
+  def jline = "3.25.1"
 
   def ubuntu = "24.04"
 }
