@@ -93,11 +93,12 @@ trait JavaClassNameModule extends ScalaModule with ScalafixModule {
 
   override def allIvyDeps: Target[Agg[Dep]] = Task {
     super.allIvyDeps()
-      .map(_.exclude(jlineOrg -> "jline-*")) ++ jlineDeps
+      .map(_.exclude(jlineDeps.toSeq.map(d => d.organization -> d.name): _*)) ++ jlineDeps
   }
 
   override def ivyDeps: Target[Agg[Dep]] =
-    super.ivyDeps().map(_.exclude("org.jline" -> "jline-*")) ++ jlineDeps
+    super.ivyDeps().map(_.exclude(jlineDeps.toSeq
+      .map(d => d.organization -> d.name): _*)) ++ jlineDeps
 }
 
 object `scala3-graal-processor` extends JavaClassNameModule {
