@@ -21,7 +21,7 @@ object Versions {
 
   def scalaCli = "1.8.0"
 
-  def graalVmVersion = "22.3.1"
+  def graalVmVersion = "22.3.5"
 
   def coursier = "2.1.24"
 
