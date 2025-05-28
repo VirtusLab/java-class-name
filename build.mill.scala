@@ -282,7 +282,7 @@ object ci extends Module {
     Task.Command {
       val publishVersion = publishVersion0()
       System.err.println(s"Publish version: $publishVersion")
-      val bundleName = s"org.virtuslab.scala-cli.java-class-name-java-class-name:$publishVersion"
+      val bundleName = s"org.virtuslab.scala-cli.java-class-name-java-class-name-$publishVersion"
       System.err.println(s"Publishing bundle: $bundleName")
       publishSonatype0(
         data = define.Target.sequence(tasks.value)(),
