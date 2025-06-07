@@ -13,7 +13,7 @@ object JavaClassNameTests extends TestSuite {
   val tests = Tests {
     test("simple") {
       val expectedClassName = "Foo"
-      val content =
+      val content           =
         s"""package a.b.c;
            |
            |public class $expectedClassName {
