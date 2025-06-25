@@ -21,7 +21,7 @@ import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
 object Versions {
   def scala = "3.3.6"
 
-  def scalaCli = "1.8.1"
+  def scalaCli = "1.8.3"
 
   def graalVmVersion = "22.3.1"
 
