@@ -29,7 +29,7 @@ object Versions {
 
   def osLib = "0.11.4"
 
-  def uTest = "0.8.5"
+  def uTest = "0.8.8"
 
   def jline = "3.25.0"
 
