@@ -1,6 +1,6 @@
-package scala.cli.javaclassname
+package cli.javaclassname
 
-import utest._
+import utest.*
 
 object JavaClassNameTests extends TestSuite {
 
