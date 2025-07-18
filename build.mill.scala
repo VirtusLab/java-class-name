@@ -1,57 +1,51 @@
-import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.4.1`
-import $ivy.`io.github.alexarchambault.mill::mill-native-image::0.1.31-1`
-import $ivy.`io.github.alexarchambault.mill::mill-native-image-upload:0.1.31-1`
-import $ivy.`com.goyeau::mill-scalafix::0.5.1`
-import de.tobiasroeser.mill.vcs.version._
+//| mvnDeps:
+//| - io.github.alexarchambault.mill::mill-native-image::0.2.0
+//| - io.github.alexarchambault.mill::mill-native-image-upload:0.2.0
+//| - com.goyeau::mill-scalafix::0.6.0
+//| - com.lumidion::sonatype-central-client-requests:0.6.0
+package build
 import io.github.alexarchambault.millnativeimage.NativeImage
 import io.github.alexarchambault.millnativeimage.upload.Upload
-import mill._
-import mill.scalalib._
+
 import coursier.core.{Dependency, DependencyManagement}
 import coursier.version.VersionConstraint
-import mill.api.Loose
+
+import java.io.File
 
 import scala.annotation.unused
 import scala.concurrent.duration.DurationInt
-import java.io.File
 import com.goyeau.mill.scalafix.ScalafixModule
 import com.lumidion.sonatype.central.client.core.{PublishingType, SonatypeCredentials}
+
+import mill.*
+import mill.scalalib.*
+import mill.api.{BuildCtx, Task}
 import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
+import mill.util.{Tasks, VcsVersion}
 
 object Versions {
-  def scala = "3.3.6"
-
-  def scalaCli = "1.8.4"
-
+  def scala          = "3.3.6"
+  def scalaCli       = "1.8.4"
   def graalVmVersion = "22.3.1"
-
-  def coursier = "2.1.24"
-
-  def osLib = "0.11.4"
-
-  def uTest = "0.8.9"
-
-  def jline = "3.25.0"
-
-  def ubuntu = "24.04"
+  def coursier       = "2.1.24"
+  def osLib          = "0.11.4"
+  def uTest          = "0.8.9"
+  def jline          = "3.25.0"
+  def ubuntu         = "24.04"
 }
 
 trait JavaMainClassNativeImage extends NativeImage {
-  def nativeImageOptions: Target[Seq[String]] = Task {
+  def nativeImageOptions: T[Seq[String]] = Task {
     super.nativeImageOptions() ++ Seq(
       "--no-fallback"
     )
   }
 
   def nativeImagePersist: Boolean = System.getenv("CI") != null
-
-  def nativeImageGraalVmJvmId = s"graalvm-java17:${Versions.graalVmVersion}"
-
-  def nativeImageName = "java-class-name"
-
-  def nativeImageMainClass = "scala.cli.javaclassname.JavaClassName"
-
-  def nameSuffix = ""
+  def nativeImageGraalVmJvmId     = s"graalvm-java17:${Versions.graalVmVersion}"
+  def nativeImageName             = "java-class-name"
+  def nativeImageMainClass        = "scala.cli.javaclassname.JavaClassName"
+  def nameSuffix                  = ""
 
   @unused
   def copyToArtifacts(directory: String = "artifacts/"): Command[Unit] = Task.Command {
@@ -60,32 +54,32 @@ trait JavaMainClassNativeImage extends NativeImage {
       directory = directory,
       name = "java-class-name",
       compress = true,
-      workspace = Task.workspace,
+      workspace = BuildCtx.workspaceRoot,
       suffix = nameSuffix
     )
   }
 }
 
 trait JavaClassNameModule extends ScalaModule with ScalafixModule {
-  override def scalacOptions: Target[Seq[String]] =
-    super.scalacOptions.map(_ ++ Seq("-Wunused:all"))
+  override def scalacOptions: T[Seq[String]] =
+    super.scalacOptions() ++ Seq("-Wunused:all")
 
-  override def scalaVersion: Target[String] = Versions.scala
+  override def scalaVersion: T[String] = Versions.scala
 
   private def jlineOrg = "org.jline"
 
-  def jlineDeps: Loose.Agg[Dep] = Agg(
-    ivy"$jlineOrg:jline-reader:${Versions.jline}",
-    ivy"$jlineOrg:jline-terminal:${Versions.jline}",
-    ivy"$jlineOrg:jline-terminal-jna:${Versions.jline}",
-    ivy"$jlineOrg:jline-terminal-jni:${Versions.jline}",
-    ivy"$jlineOrg:jline-native:${Versions.jline}"
+  def jlineDeps: Seq[Dep] = Seq(
+    mvn"$jlineOrg:jline-reader:${Versions.jline}",
+    mvn"$jlineOrg:jline-terminal:${Versions.jline}",
+    mvn"$jlineOrg:jline-terminal-jna:${Versions.jline}",
+    mvn"$jlineOrg:jline-terminal-jni:${Versions.jline}",
+    mvn"$jlineOrg:jline-native:${Versions.jline}"
   )
 
   override def coursierDependency: Dependency =
     super.coursierDependency
       .addOverrides(
-        jlineDeps.toSeq.map(jd =>
+        jlineDeps.map(jd =>
           DependencyManagement.Key.from(jd.toDependency(jd.version, jd.version, "")) ->
             DependencyManagement.Values.empty.withVersionConstraint(
               VersionConstraint.Lazy(Versions.jline)
@@ -93,27 +87,27 @@ trait JavaClassNameModule extends ScalaModule with ScalafixModule {
         )
       )
 
-  override def allIvyDeps: Target[Agg[Dep]] = Task {
-    super.allIvyDeps()
-      .map(_.exclude(jlineDeps.toSeq.map(d => d.organization -> d.name): _*)) ++ jlineDeps
+  override def allMvnDeps: T[Seq[Dep]] = Task {
+    super.allMvnDeps()
+      .map(_.exclude(jlineDeps.map(d => d.organization -> d.name): _*)) ++ jlineDeps
   }
 
-  override def ivyDeps: Target[Agg[Dep]] =
-    super.ivyDeps().map(_.exclude(jlineDeps.toSeq
+  override def mvnDeps: T[Seq[Dep]] =
+    super.mvnDeps().map(_.exclude(jlineDeps
       .map(d => d.organization -> d.name): _*)) ++ jlineDeps
 }
 
 object `scala3-graal-processor` extends JavaClassNameModule {
-  override def mainClass: Target[Option[String]] = Some("scala.cli.graal.CoursierCacheProcessor")
+  override def mainClass: T[Option[String]] = Some("scala.cli.graal.CoursierCacheProcessor")
 
-  override def ivyDeps: Target[Agg[Dep]] = jlineDeps ++ Agg(
-    ivy"org.virtuslab.scala-cli::scala3-graal:${Versions.scalaCli}"
+  override def mvnDeps: T[Seq[Dep]] = jlineDeps ++ Seq(
+    mvn"org.virtuslab.scala-cli::scala3-graal:${Versions.scalaCli}"
   )
 }
 
 object `java-class-name` extends JavaClassNameModule with JavaMainClassNativeImage
     with JavaClassNamePublishModule {
-  def nativeImageClassPath: Target[Seq[PathRef]] = Task {
+  def nativeImageClassPath: T[Seq[PathRef]] = Task {
     // adapted from https://github.com/VirtusLab/scala-cli/blob/b19086697401827a6f8185040ceb248d8865bf21/build.sc#L732-L744
 
     val classpath = runClasspath().map(_.path).mkString(File.pathSeparator)
@@ -128,7 +122,7 @@ object `java-class-name` extends JavaClassNameModule with JavaMainClassNativeIma
       mainArgs = Seq(cache.toNIO.toString, classpath)
     )
     val cp = res.out.trim()
-    if (cp.isBlank) System.err.println("class path can't be empty!")
+    if cp.isBlank then System.err.println("class path can't be empty!")
     assert(cp.nonEmpty)
     System.err.println("Processed class path:")
     for (f <- cp.split(File.pathSeparator))
@@ -136,28 +130,28 @@ object `java-class-name` extends JavaClassNameModule with JavaMainClassNativeIma
     cp.split(File.pathSeparator).toSeq.map(p => mill.PathRef(os.Path(p)))
   }
 
-  override def ivyDeps: Target[Agg[Dep]] = super.ivyDeps() ++ jlineDeps ++ Agg(
-    ivy"org.scala-lang::scala3-compiler:${Versions.scala}"
+  override def mvnDeps: T[Seq[Dep]] = super.mvnDeps() ++ jlineDeps ++ Seq(
+    mvn"org.scala-lang::scala3-compiler:${Versions.scala}"
   )
 
-  override def compileIvyDeps: Target[Agg[Dep]] = super.compileIvyDeps() ++ Agg(
-    ivy"org.graalvm.nativeimage:svm:${Versions.graalVmVersion}"
+  override def compileMvnDeps: T[Seq[Dep]] = super.compileMvnDeps() ++ Seq(
+    mvn"org.graalvm.nativeimage:svm:${Versions.graalVmVersion}"
   )
 
   object static extends JavaMainClassNativeImage {
     def nameSuffix = "-static"
 
-    def nativeImageClassPath: Target[Seq[PathRef]] = Task {
+    def nativeImageClassPath: T[Seq[PathRef]] = Task {
       `java-class-name`.nativeImageClassPath()
     }
 
-    def buildHelperImage: Target[Unit] = Task {
+    def buildHelperImage: T[Unit] = Task {
       os.proc("docker", "build", "-t", "scala-cli-base-musl:latest", ".")
-        .call(cwd = Task.workspace / "musl-image", stdout = os.Inherit)
+        .call(cwd = BuildCtx.workspaceRoot / "musl-image", stdout = os.Inherit)
       ()
     }
 
-    def nativeImageDockerParams: Target[Option[NativeImage.DockerParams]] = Task {
+    def nativeImageDockerParams: T[Option[NativeImage.DockerParams]] = Task {
       buildHelperImage()
       Some(
         NativeImage.linuxStaticParams(
@@ -177,11 +171,11 @@ object `java-class-name` extends JavaClassNameModule with JavaMainClassNativeIma
   object `mostly-static` extends JavaMainClassNativeImage {
     def nameSuffix = "-mostly-static"
 
-    def nativeImageClassPath: Target[Seq[PathRef]] = Task {
+    def nativeImageClassPath: T[Seq[PathRef]] = Task {
       `java-class-name`.nativeImageClassPath()
     }
 
-    def nativeImageDockerParams: Target[Option[NativeImage.DockerParams]] = Some(
+    def nativeImageDockerParams: T[Option[NativeImage.DockerParams]] = Some(
       NativeImage.linuxMostlyStaticParams(
         s"ubuntu:${Versions.ubuntu}",
         s"https://github.com/coursier/coursier/releases/download/v${Versions.coursier}/cs-x86_64-pc-linux.gz"
@@ -192,46 +186,47 @@ object `java-class-name` extends JavaClassNameModule with JavaMainClassNativeIma
 
 object `java-class-name-tests` extends JavaClassNameModule with SbtModule {
   trait Tests extends ScalaModule with super.SbtTests with TestModule.Utest {
-    def launcher: Target[PathRef]
+    def launcher: T[PathRef]
 
-    def ivyDeps: Target[Agg[Dep]] = super.ivyDeps() ++ jlineDeps ++ Seq(
-      ivy"com.lihaoyi::os-lib:${Versions.osLib}",
-      ivy"com.lihaoyi::utest:${Versions.uTest}"
+    def mvnDeps: T[Seq[Dep]] = super.mvnDeps() ++ jlineDeps ++ Seq(
+      mvn"com.lihaoyi::os-lib:${Versions.osLib}",
+      mvn"com.lihaoyi::utest:${Versions.uTest}"
     )
 
     def testFramework = "utest.runner.Framework"
 
-    def forkEnv: Target[Map[String, String]] = super.forkEnv() ++ Seq(
+    def forkEnv: T[Map[String, String]] = super.forkEnv() ++ Seq(
       "JAVA_CLASS_NAME_CLI" -> launcher().path.toString
     )
   }
 
   object test extends Tests {
-    def launcher: Target[PathRef] = `java-class-name`.nativeImage()
+    def launcher: T[PathRef] = `java-class-name`.nativeImage()
   }
 
   object static extends Tests {
-    def sources: Target[Seq[PathRef]] = Task.Sources(`java-class-name-tests`.test.sources())
+    def sources: T[Seq[PathRef]] = `java-class-name-tests`.test.sources()
 
-    def launcher: Target[PathRef] = `java-class-name`.static.nativeImage()
+    def launcher: T[PathRef] = `java-class-name`.static.nativeImage()
   }
 
   object `mostly-static` extends Tests {
-    def sources: Target[Seq[PathRef]] = Task.Sources(`java-class-name-tests`.test.sources())
+    def sources: T[Seq[PathRef]] = `java-class-name-tests`.test.sources()
 
-    def launcher: Target[PathRef] = `java-class-name`.`mostly-static`.nativeImage()
+    def launcher: T[PathRef] = `java-class-name`.`mostly-static`.nativeImage()
   }
 }
 
-def publishVersion0: Target[String] = Task {
+def publishVersion0: T[String] = Task {
   val state = VcsVersion.vcsState()
-  if (state.commitsSinceLastTag > 0) {
+  if state.commitsSinceLastTag > 0 then {
     val versionOrEmpty = state.lastTag
       .filter(_ != "latest")
       .map(_.stripPrefix("v"))
       .flatMap { tag =>
         val idx = tag.lastIndexOf(".")
-        if (idx >= 0) Some(tag.take(idx + 1) + (tag.drop(idx + 1).toInt + 1).toString + "-SNAPSHOT")
+        if idx >= 0 then
+          Some(tag.take(idx + 1) + (tag.drop(idx + 1).toInt + 1).toString + "-SNAPSHOT")
         else None
       }
       .getOrElse("0.0.1-SNAPSHOT")
@@ -251,7 +246,7 @@ def ghName     = "java-class-name"
 def publishOrg = "org.virtuslab.scala-cli.java-class-name"
 
 trait JavaClassNamePublishModule extends SonatypeCentralPublishModule {
-  def pomSettings: Target[PomSettings] = PomSettings(
+  def pomSettings: T[PomSettings] = PomSettings(
     description = artifactName(),
     organization = publishOrg,
     url = s"https://github.com/$ghOrg/$ghName",
@@ -273,22 +268,22 @@ trait JavaClassNamePublishModule extends SonatypeCentralPublishModule {
     )
   )
 
-  def publishVersion: Target[String] = publishVersion0()
+  def publishVersion: T[String] = publishVersion0()
 }
 
 @unused
 object ci extends Module {
   @unused
-  def publishSonatype(tasks: mill.main.Tasks[PublishModule.PublishData]): Command[Unit] =
+  def publishSonatype(tasks: Tasks[PublishModule.PublishData]): Command[Unit] =
     Task.Command {
       val publishVersion = publishVersion0()
       System.err.println(s"Publish version: $publishVersion")
       val bundleName = s"$publishOrg-$ghName-$publishVersion"
       System.err.println(s"Publishing bundle: $bundleName")
       publishSonatype0(
-        data = define.Target.sequence(tasks.value)(),
+        data = Task.sequence(tasks.value)(),
         log = Task.ctx().log,
-        workspace = Task.workspace,
+        workspace = BuildCtx.workspaceRoot,
         env = Task.env,
         bundleName = bundleName
       )
@@ -343,12 +338,12 @@ object ci extends Module {
       awaitTimeout = timeout.toMillis.toInt
     )
 
-    val publishingType  = if (isRelease) PublishingType.AUTOMATIC else PublishingType.USER_MANAGED
-    val finalBundleName = if (bundleName.nonEmpty) Some(bundleName) else None
+    val publishingType = if isRelease then PublishingType.AUTOMATIC else PublishingType.USER_MANAGED
+    val finalBundleName = if bundleName.nonEmpty then Some(bundleName) else None
     publisher.publishAll(
       publishingType = publishingType,
       singleBundleName = finalBundleName,
-      artifacts = artifacts: _*
+      artifacts = artifacts*
     )
   }
 
@@ -356,7 +351,7 @@ object ci extends Module {
   def upload(directory: String = "artifacts/"): Command[Unit] = Task.Command {
     val version: String = publishVersion0()
 
-    val path      = os.Path(directory, Task.workspace)
+    val path      = os.Path(directory, BuildCtx.workspaceRoot)
     val launchers = os.list(path).filter(os.isFile(_)).map { path =>
       path -> path.last
     }
@@ -364,8 +359,7 @@ object ci extends Module {
       sys.error("UPLOAD_GH_TOKEN not set")
     }
     val (tag, overwriteAssets) =
-      if (version.endsWith("-SNAPSHOT")) ("nightly", true)
-      else ("v" + version, false)
+      if version.endsWith("-SNAPSHOT") then ("nightly", true) else ("v" + version, false)
 
     Upload.upload(
       ghOrg,
@@ -374,6 +368,6 @@ object ci extends Module {
       tag,
       dryRun = false,
       overwrite = overwriteAssets
-    )(launchers: _*)
+    )(launchers*)
   }
 }
