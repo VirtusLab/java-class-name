@@ -24,21 +24,14 @@ import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
 import mill.util.{Tasks, VcsVersion}
 
 object Versions {
-  def scala = "3.3.6"
-
-  def scalaCli = "1.8.4"
-
+  def scala          = "3.3.6"
+  def scalaCli       = "1.8.4"
   def graalVmVersion = "22.3.1"
-
-  def coursier = "2.1.24"
-
-  def osLib = "0.11.4"
-
-  def uTest = "0.8.9"
-
-  def jline = "3.25.0"
-
-  def ubuntu = "24.04"
+  def coursier       = "2.1.24"
+  def osLib          = "0.11.4"
+  def uTest          = "0.8.9"
+  def jline          = "3.25.0"
+  def ubuntu         = "24.04"
 }
 
 trait JavaMainClassNativeImage extends NativeImage {
@@ -49,14 +42,10 @@ trait JavaMainClassNativeImage extends NativeImage {
   }
 
   def nativeImagePersist: Boolean = System.getenv("CI") != null
-
-  def nativeImageGraalVmJvmId = s"graalvm-java17:${Versions.graalVmVersion}"
-
-  def nativeImageName = "java-class-name"
-
-  def nativeImageMainClass = "scala.cli.javaclassname.JavaClassName"
-
-  def nameSuffix = ""
+  def nativeImageGraalVmJvmId     = s"graalvm-java17:${Versions.graalVmVersion}"
+  def nativeImageName             = "java-class-name"
+  def nativeImageMainClass        = "scala.cli.javaclassname.JavaClassName"
+  def nameSuffix                  = ""
 
   @unused
   def copyToArtifacts(directory: String = "artifacts/"): Command[Unit] = Task.Command {
@@ -90,7 +79,7 @@ trait JavaClassNameModule extends ScalaModule with ScalafixModule {
   override def coursierDependency: Dependency =
     super.coursierDependency
       .addOverrides(
-        jlineDeps.toSeq.map(jd =>
+        jlineDeps.map(jd =>
           DependencyManagement.Key.from(jd.toDependency(jd.version, jd.version, "")) ->
             DependencyManagement.Values.empty.withVersionConstraint(
               VersionConstraint.Lazy(Versions.jline)
@@ -100,11 +89,11 @@ trait JavaClassNameModule extends ScalaModule with ScalafixModule {
 
   override def allMvnDeps: T[Seq[Dep]] = Task {
     super.allMvnDeps()
-      .map(_.exclude(jlineDeps.toSeq.map(d => d.organization -> d.name): _*)) ++ jlineDeps
+      .map(_.exclude(jlineDeps.map(d => d.organization -> d.name): _*)) ++ jlineDeps
   }
 
   override def mvnDeps: T[Seq[Dep]] =
-    super.mvnDeps().map(_.exclude(jlineDeps.toSeq
+    super.mvnDeps().map(_.exclude(jlineDeps
       .map(d => d.organization -> d.name): _*)) ++ jlineDeps
 }
 
@@ -133,7 +122,7 @@ object `java-class-name` extends JavaClassNameModule with JavaMainClassNativeIma
       mainArgs = Seq(cache.toNIO.toString, classpath)
     )
     val cp = res.out.trim()
-    if (cp.isBlank) System.err.println("class path can't be empty!")
+    if cp.isBlank then System.err.println("class path can't be empty!")
     assert(cp.nonEmpty)
     System.err.println("Processed class path:")
     for (f <- cp.split(File.pathSeparator))
@@ -216,13 +205,13 @@ object `java-class-name-tests` extends JavaClassNameModule with SbtModule {
   }
 
   object static extends Tests {
-    def sources = `java-class-name-tests`.test.sources()
+    def sources: T[Seq[PathRef]] = `java-class-name-tests`.test.sources()
 
     def launcher: T[PathRef] = `java-class-name`.static.nativeImage()
   }
 
   object `mostly-static` extends Tests {
-    def sources = `java-class-name-tests`.test.sources()
+    def sources: T[Seq[PathRef]] = `java-class-name-tests`.test.sources()
 
     def launcher: T[PathRef] = `java-class-name`.`mostly-static`.nativeImage()
   }
@@ -230,13 +219,14 @@ object `java-class-name-tests` extends JavaClassNameModule with SbtModule {
 
 def publishVersion0: T[String] = Task {
   val state = VcsVersion.vcsState()
-  if (state.commitsSinceLastTag > 0) {
+  if state.commitsSinceLastTag > 0 then {
     val versionOrEmpty = state.lastTag
       .filter(_ != "latest")
       .map(_.stripPrefix("v"))
       .flatMap { tag =>
         val idx = tag.lastIndexOf(".")
-        if (idx >= 0) Some(tag.take(idx + 1) + (tag.drop(idx + 1).toInt + 1).toString + "-SNAPSHOT")
+        if idx >= 0 then
+          Some(tag.take(idx + 1) + (tag.drop(idx + 1).toInt + 1).toString + "-SNAPSHOT")
         else None
       }
       .getOrElse("0.0.1-SNAPSHOT")
@@ -348,12 +338,12 @@ object ci extends Module {
       awaitTimeout = timeout.toMillis.toInt
     )
 
-    val publishingType  = if (isRelease) PublishingType.AUTOMATIC else PublishingType.USER_MANAGED
-    val finalBundleName = if (bundleName.nonEmpty) Some(bundleName) else None
+    val publishingType = if isRelease then PublishingType.AUTOMATIC else PublishingType.USER_MANAGED
+    val finalBundleName = if bundleName.nonEmpty then Some(bundleName) else None
     publisher.publishAll(
       publishingType = publishingType,
       singleBundleName = finalBundleName,
-      artifacts = artifacts: _*
+      artifacts = artifacts*
     )
   }
 
@@ -369,8 +359,7 @@ object ci extends Module {
       sys.error("UPLOAD_GH_TOKEN not set")
     }
     val (tag, overwriteAssets) =
-      if (version.endsWith("-SNAPSHOT")) ("nightly", true)
-      else ("v" + version, false)
+      if version.endsWith("-SNAPSHOT") then ("nightly", true) else ("v" + version, false)
 
     Upload.upload(
       ghOrg,
@@ -379,6 +368,6 @@ object ci extends Module {
       tag,
       dryRun = false,
       overwrite = overwriteAssets
-    )(launchers: _*)
+    )(launchers*)
   }
 }
