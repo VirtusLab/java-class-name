@@ -76,7 +76,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
       - name: Test
-        run: ./mill -i --no-filesystem-checker java-class-name-tests.static # TODO: get rid of --no-filesystem-checker
+        run: ./mill -i java-class-name-static-tests.test
       - run: ./mill -i ci.upload --directory artifacts/
         if: github.event_name == 'push'
         env:
@@ -108,7 +108,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
       - name: Test
-        run: ./mill -i --no-filesystem-checker java-class-name-tests.mostly-static # TODO: get rid of --no-filesystem-checker
+        run: ./mill -i java-class-name-mostly-static-tests.test
       - run: ./mill -i ci.upload --directory artifacts/
         if: github.event_name == 'push'
         env:

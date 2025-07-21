@@ -184,36 +184,38 @@ object `java-class-name` extends JavaClassNameModule with JavaMainClassNativeIma
   }
 }
 
+trait Tests(jlineDeps: Seq[Dep]) extends ScalaModule with TestModule.Utest {
+  def launcher: T[PathRef]
+
+  def mvnDeps: T[Seq[Dep]] = super.mvnDeps() ++ jlineDeps ++ Seq(
+    mvn"com.lihaoyi::os-lib:${Versions.osLib}",
+    mvn"com.lihaoyi::utest:${Versions.uTest}"
+  )
+
+  def testFramework = "utest.runner.Framework"
+
+  def forkEnv: T[Map[String, String]] = super.forkEnv() ++ Seq(
+    "JAVA_CLASS_NAME_CLI" -> launcher().path.toString
+  )
+}
+
 object `java-class-name-tests` extends JavaClassNameModule with SbtModule {
-  trait Tests extends ScalaModule with super.SbtTests with TestModule.Utest {
-    def launcher: T[PathRef]
-
-    def mvnDeps: T[Seq[Dep]] = super.mvnDeps() ++ jlineDeps ++ Seq(
-      mvn"com.lihaoyi::os-lib:${Versions.osLib}",
-      mvn"com.lihaoyi::utest:${Versions.uTest}"
-    )
-
-    def testFramework = "utest.runner.Framework"
-
-    def forkEnv: T[Map[String, String]] = super.forkEnv() ++ Seq(
-      "JAVA_CLASS_NAME_CLI" -> launcher().path.toString
-    )
-  }
-
-  object test extends Tests {
+  object test extends Tests(jlineDeps = jlineDeps) with super.SbtTests {
     def launcher: T[PathRef] = `java-class-name`.nativeImage()
   }
+}
 
-  object static extends Tests {
+object `java-class-name-static-tests` extends JavaClassNameModule with SbtModule {
+  object test extends Tests(jlineDeps = jlineDeps) with super.SbtTests {
     def sources: T[Seq[PathRef]] = `java-class-name-tests`.test.sources()
-
-    def launcher: T[PathRef] = `java-class-name`.static.nativeImage()
+    def launcher: T[PathRef]     = `java-class-name`.static.nativeImage()
   }
+}
 
-  object `mostly-static` extends Tests {
+object `java-class-name-mostly-static-tests` extends JavaClassNameModule with SbtModule {
+  object test extends Tests(jlineDeps = jlineDeps) with super.SbtTests {
     def sources: T[Seq[PathRef]] = `java-class-name-tests`.test.sources()
-
-    def launcher: T[PathRef] = `java-class-name`.`mostly-static`.nativeImage()
+    def launcher: T[PathRef]     = `java-class-name`.`mostly-static`.nativeImage()
   }
 }
 
