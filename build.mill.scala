@@ -25,7 +25,7 @@ import mill.util.{Tasks, VcsVersion}
 
 object Versions {
   def scala          = "3.3.6"
-  def scalaCli       = "1.8.4"
+  def scalaCli       = "1.8.5"
   def graalVmVersion = "22.3.1"
   def coursier       = "2.1.24"
   def osLib          = "0.11.4"
