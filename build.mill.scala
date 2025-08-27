@@ -89,12 +89,12 @@ trait JavaClassNameModule extends ScalaModule with ScalafixModule {
 
   override def allMvnDeps: T[Seq[Dep]] = Task {
     super.allMvnDeps()
-      .map(_.exclude(jlineDeps.map(d => d.organization -> d.name): _*)) ++ jlineDeps
+      .map(_.exclude(jlineDeps.map(d => d.organization -> d.name)*)) ++ jlineDeps
   }
 
   override def mvnDeps: T[Seq[Dep]] =
     super.mvnDeps().map(_.exclude(jlineDeps
-      .map(d => d.organization -> d.name): _*)) ++ jlineDeps
+      .map(d => d.organization -> d.name)*)) ++ jlineDeps
 }
 
 object `scala3-graal-processor` extends JavaClassNameModule {
