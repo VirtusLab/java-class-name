@@ -29,7 +29,7 @@ object Versions {
   def graalVmVersion = "22.3.1"
   def coursier       = "2.1.24"
   def osLib          = "0.11.5"
-  def uTest          = "0.8.9"
+  def uTest          = "0.9.1"
   def jline          = "3.25.0"
   def ubuntu         = "24.04"
 }
