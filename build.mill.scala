@@ -1,6 +1,6 @@
 //| mvnDeps:
-//| - io.github.alexarchambault.mill::mill-native-image::0.2.0
-//| - io.github.alexarchambault.mill::mill-native-image-upload:0.2.0
+//| - io.github.alexarchambault.mill::mill-native-image::0.2.2
+//| - io.github.alexarchambault.mill::mill-native-image-upload:0.2.2
 //| - com.goyeau::mill-scalafix::0.6.0
 //| - com.lumidion::sonatype-central-client-requests:0.6.0
 package build
@@ -25,11 +25,11 @@ import mill.util.{Tasks, VcsVersion}
 
 object Versions {
   def scala          = "3.3.6"
-  def scalaCli       = "1.8.4"
+  def scalaCli       = "1.8.5"
   def graalVmVersion = "22.3.1"
   def coursier       = "2.1.24"
-  def osLib          = "0.11.4"
-  def uTest          = "0.8.9"
+  def osLib          = "0.11.5"
+  def uTest          = "0.9.1"
   def jline          = "3.25.0"
   def ubuntu         = "24.04"
 }
@@ -89,12 +89,12 @@ trait JavaClassNameModule extends ScalaModule with ScalafixModule {
 
   override def allMvnDeps: T[Seq[Dep]] = Task {
     super.allMvnDeps()
-      .map(_.exclude(jlineDeps.map(d => d.organization -> d.name): _*)) ++ jlineDeps
+      .map(_.exclude(jlineDeps.map(d => d.organization -> d.name)*)) ++ jlineDeps
   }
 
   override def mvnDeps: T[Seq[Dep]] =
     super.mvnDeps().map(_.exclude(jlineDeps
-      .map(d => d.organization -> d.name): _*)) ++ jlineDeps
+      .map(d => d.organization -> d.name)*)) ++ jlineDeps
 }
 
 object `scala3-graal-processor` extends JavaClassNameModule {
