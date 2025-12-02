@@ -87,22 +87,22 @@ trait JavaClassNameModule extends ScalaModule with ScalafixModule {
         )
       )
 
+  protected def downgradeJline(deps: Seq[Dep]): Seq[Dep] =
+    deps.map(_.exclude(jlineDeps.map(d => d.organization -> d.name)*)) ++ jlineDeps
+
   override def allMvnDeps: T[Seq[Dep]] = Task {
-    super.allMvnDeps()
-      .map(_.exclude(jlineDeps.map(d => d.organization -> d.name)*)) ++ jlineDeps
+    downgradeJline(super.allMvnDeps())
   }
 
-  override def mvnDeps: T[Seq[Dep]] =
-    super.mvnDeps().map(_.exclude(jlineDeps
-      .map(d => d.organization -> d.name)*)) ++ jlineDeps
+  override def mvnDeps: T[Seq[Dep]] = downgradeJline(super.mvnDeps())
 }
 
 object `scala3-graal-processor` extends JavaClassNameModule {
   override def mainClass: T[Option[String]] = Some("scala.cli.graal.CoursierCacheProcessor")
 
-  override def mvnDeps: T[Seq[Dep]] = jlineDeps ++ Seq(
-    mvn"org.virtuslab.scala-cli::scala3-graal:${Versions.scalaCli}"
-  )
+  override def mvnDeps: T[Seq[Dep]] = downgradeJline {
+    super.mvnDeps() ++ Seq(mvn"org.virtuslab.scala-cli::scala3-graal:${Versions.scalaCli}")
+  }
 }
 
 object `java-class-name` extends JavaClassNameModule with JavaMainClassNativeImage
@@ -130,9 +130,9 @@ object `java-class-name` extends JavaClassNameModule with JavaMainClassNativeIma
     cp.split(File.pathSeparator).toSeq.map(p => mill.PathRef(os.Path(p)))
   }
 
-  override def mvnDeps: T[Seq[Dep]] = super.mvnDeps() ++ jlineDeps ++ Seq(
-    mvn"org.scala-lang::scala3-compiler:${Versions.scala}"
-  )
+  override def mvnDeps: T[Seq[Dep]] = downgradeJline {
+    super.mvnDeps() ++ Seq(mvn"org.scala-lang::scala3-compiler:${Versions.scala}")
+  }
 
   override def compileMvnDeps: T[Seq[Dep]] = super.compileMvnDeps() ++ Seq(
     mvn"org.graalvm.nativeimage:svm:${Versions.graalVmVersion}"
