@@ -27,7 +27,7 @@ object Versions {
   def scala          = "3.3.7"
   def scalaCli       = "1.8.5"
   def graalVmVersion = "22.3.1"
-  def coursier       = "2.1.24"
+  def coursier       = "2.1.25-M19"
   def osLib          = "0.11.5"
   def uTest          = "0.9.1"
   def jline          = "3.25.0"
