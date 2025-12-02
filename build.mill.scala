@@ -1,6 +1,6 @@
 //| mvnDeps:
-//| - io.github.alexarchambault.mill::mill-native-image::0.2.2
-//| - io.github.alexarchambault.mill::mill-native-image-upload:0.2.2
+//| - io.github.alexarchambault.mill::mill-native-image::0.2.3
+//| - io.github.alexarchambault.mill::mill-native-image-upload:0.2.3
 //| - com.goyeau::mill-scalafix::0.6.0
 //| - com.lumidion::sonatype-central-client-requests:0.6.0
 package build
@@ -24,12 +24,12 @@ import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
 import mill.util.{Tasks, VcsVersion}
 
 object Versions {
-  def scala          = "3.3.6"
+  def scala          = "3.3.7"
   def scalaCli       = "1.8.5"
   def graalVmVersion = "22.3.1"
-  def coursier       = "2.1.24"
-  def osLib          = "0.11.5"
-  def uTest          = "0.9.1"
+  def coursier       = "2.1.25-M19"
+  def osLib          = "0.11.6"
+  def uTest          = "0.9.4"
   def jline          = "3.25.0"
   def ubuntu         = "24.04"
 }
@@ -87,22 +87,22 @@ trait JavaClassNameModule extends ScalaModule with ScalafixModule {
         )
       )
 
+  protected def downgradeJline(deps: Seq[Dep]): Seq[Dep] =
+    deps.map(_.exclude(jlineDeps.map(d => d.organization -> d.name)*)) ++ jlineDeps
+
   override def allMvnDeps: T[Seq[Dep]] = Task {
-    super.allMvnDeps()
-      .map(_.exclude(jlineDeps.map(d => d.organization -> d.name)*)) ++ jlineDeps
+    downgradeJline(super.allMvnDeps())
   }
 
-  override def mvnDeps: T[Seq[Dep]] =
-    super.mvnDeps().map(_.exclude(jlineDeps
-      .map(d => d.organization -> d.name)*)) ++ jlineDeps
+  override def mvnDeps: T[Seq[Dep]] = downgradeJline(super.mvnDeps())
 }
 
 object `scala3-graal-processor` extends JavaClassNameModule {
   override def mainClass: T[Option[String]] = Some("scala.cli.graal.CoursierCacheProcessor")
 
-  override def mvnDeps: T[Seq[Dep]] = jlineDeps ++ Seq(
-    mvn"org.virtuslab.scala-cli::scala3-graal:${Versions.scalaCli}"
-  )
+  override def mvnDeps: T[Seq[Dep]] = downgradeJline {
+    super.mvnDeps() ++ Seq(mvn"org.virtuslab.scala-cli::scala3-graal:${Versions.scalaCli}")
+  }
 }
 
 object `java-class-name` extends JavaClassNameModule with JavaMainClassNativeImage
@@ -130,9 +130,9 @@ object `java-class-name` extends JavaClassNameModule with JavaMainClassNativeIma
     cp.split(File.pathSeparator).toSeq.map(p => mill.PathRef(os.Path(p)))
   }
 
-  override def mvnDeps: T[Seq[Dep]] = super.mvnDeps() ++ jlineDeps ++ Seq(
-    mvn"org.scala-lang::scala3-compiler:${Versions.scala}"
-  )
+  override def mvnDeps: T[Seq[Dep]] = downgradeJline {
+    super.mvnDeps() ++ Seq(mvn"org.scala-lang::scala3-compiler:${Versions.scala}")
+  }
 
   override def compileMvnDeps: T[Seq[Dep]] = super.compileMvnDeps() ++ Seq(
     mvn"org.graalvm.nativeimage:svm:${Versions.graalVmVersion}"
