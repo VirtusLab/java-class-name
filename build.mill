@@ -1,8 +1,8 @@
+//| mill-jvm-version: system|17
 //| mvnDeps:
-//| - io.github.alexarchambault.mill::mill-native-image::0.2.3
-//| - io.github.alexarchambault.mill::mill-native-image-upload:0.2.3
-//| - com.goyeau::mill-scalafix::0.6.0
-//| - com.lumidion::sonatype-central-client-requests:0.6.0
+//| - io.github.alexarchambault.mill::mill-native-image::0.2.6
+//| - io.github.alexarchambault.mill::mill-native-image-upload:0.2.6
+//| - com.goyeau::mill-scalafix::0.6.2
 package build
 import io.github.alexarchambault.millnativeimage.NativeImage
 import io.github.alexarchambault.millnativeimage.upload.Upload
@@ -15,11 +15,11 @@ import java.io.File
 import scala.annotation.unused
 import scala.concurrent.duration.DurationInt
 import com.goyeau.mill.scalafix.ScalafixModule
-import com.lumidion.sonatype.central.client.core.{PublishingType, SonatypeCredentials}
 
 import mill.*
 import mill.scalalib.*
 import mill.api.{BuildCtx, Task}
+import mill.javalib.publish.{PublishingType, SonatypeCredentials}
 import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
 import mill.util.{Tasks, VcsVersion}
 
