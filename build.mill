@@ -10,8 +10,6 @@ import io.github.alexarchambault.millnativeimage.upload.Upload
 import coursier.core.{Dependency, DependencyManagement}
 import coursier.version.VersionConstraint
 
-import java.io.File
-
 import scala.annotation.unused
 import scala.concurrent.duration.DurationInt
 import com.goyeau.mill.scalafix.ScalafixModule
@@ -25,7 +23,6 @@ import mill.util.{Tasks, VcsVersion}
 
 object Versions {
   def scala          = "3.3.8"
-  def scalaCli       = "1.9.1"
   def graalVmVersion = "22.3.1"
   def coursier       = "2.1.25-M19"
   def osLib          = "0.11.8"
@@ -97,39 +94,10 @@ trait JavaClassNameModule extends ScalaModule with ScalafixModule {
   override def mvnDeps: T[Seq[Dep]] = downgradeJline(super.mvnDeps())
 }
 
-object `scala3-graal-processor` extends JavaClassNameModule {
-  override def mainClass: T[Option[String]] = Some("scala.cli.graal.CoursierCacheProcessor")
-
-  override def mvnDeps: T[Seq[Dep]] = downgradeJline {
-    super.mvnDeps() ++ Seq(
-      mvn"org.virtuslab.scala-cli::scala3-graal-processor:${Versions.scalaCli}"
-    )
-  }
-}
-
 object `java-class-name` extends JavaClassNameModule with JavaMainClassNativeImage
     with JavaClassNamePublishModule {
   def nativeImageClassPath: T[Seq[PathRef]] = Task {
-    // adapted from https://github.com/VirtusLab/scala-cli/blob/b19086697401827a6f8185040ceb248d8865bf21/build.sc#L732-L744
-
-    val classpath = runClasspath().map(_.path).mkString(File.pathSeparator)
-    val cache     = Task.dest / "native-cp"
-    // `scala3-graal-processor`.run() do not give me output and I cannot pass dynamically computed values like classpath
-    System.err.println("Calling scala3 graal processor on")
-    for (f <- classpath.split(File.pathSeparator))
-      System.err.println(s"  $f")
-    val res = mill.util.Jvm.callProcess(
-      mainClass = `scala3-graal-processor`.finalMainClass(),
-      classPath = `scala3-graal-processor`.runClasspath().map(_.path),
-      mainArgs = Seq(cache.toNIO.toString, classpath)
-    )
-    val cp = res.out.trim()
-    if cp.isBlank then System.err.println("class path can't be empty!")
-    assert(cp.nonEmpty)
-    System.err.println("Processed class path:")
-    for (f <- cp.split(File.pathSeparator))
-      System.err.println(s"  $f")
-    cp.split(File.pathSeparator).toSeq.map(p => mill.PathRef(os.Path(p)))
+    runClasspath()
   }
 
   override def mvnDeps: T[Seq[Dep]] = downgradeJline {
