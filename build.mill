@@ -7,9 +7,6 @@ package build
 import io.github.alexarchambault.millnativeimage.NativeImage
 import io.github.alexarchambault.millnativeimage.upload.Upload
 
-import coursier.core.{Dependency, DependencyManagement}
-import coursier.version.VersionConstraint
-
 import scala.annotation.unused
 import scala.concurrent.duration.DurationInt
 import com.goyeau.mill.scalafix.ScalafixModule
@@ -27,7 +24,6 @@ object Versions {
   def coursier       = "2.1.25-M19"
   def osLib          = "0.11.8"
   def uTest          = "0.9.5"
-  def jline          = "3.25.0"
   def ubuntu         = "24.04"
 }
 
@@ -62,47 +58,18 @@ trait JavaClassNameModule extends ScalaModule with ScalafixModule {
     super.scalacOptions() ++ Seq("-Wunused:all")
 
   override def scalaVersion: T[String] = Versions.scala
-
-  private def jlineOrg = "org.jline"
-
-  def jlineDeps: Seq[Dep] = Seq(
-    mvn"$jlineOrg:jline-reader:${Versions.jline}",
-    mvn"$jlineOrg:jline-terminal:${Versions.jline}",
-    mvn"$jlineOrg:jline-terminal-jna:${Versions.jline}",
-    mvn"$jlineOrg:jline-terminal-jni:${Versions.jline}",
-    mvn"$jlineOrg:jline-native:${Versions.jline}"
-  )
-
-  override def coursierDependency: Dependency =
-    super.coursierDependency
-      .addOverrides(
-        jlineDeps.map(jd =>
-          DependencyManagement.Key.from(jd.toDependency(jd.version, jd.version, "")) ->
-            DependencyManagement.Values.empty.withVersionConstraint(
-              VersionConstraint.Lazy(Versions.jline)
-            )
-        )
-      )
-
-  protected def downgradeJline(deps: Seq[Dep]): Seq[Dep] =
-    deps.map(_.exclude(jlineDeps.map(d => d.organization -> d.name)*)) ++ jlineDeps
-
-  override def allMvnDeps: T[Seq[Dep]] = Task {
-    downgradeJline(super.allMvnDeps())
-  }
-
-  override def mvnDeps: T[Seq[Dep]] = downgradeJline(super.mvnDeps())
 }
 
 object `java-class-name` extends JavaClassNameModule with JavaMainClassNativeImage
     with JavaClassNamePublishModule {
   def nativeImageClassPath: T[Seq[PathRef]] = Task {
-    runClasspath()
+    // JLine is only used by the Scala 3 REPL, and its native-image config is incompatible with GraalVM for JDK 17 (<23.1)
+    val deps = (allMvnDeps() ++ runMvnDeps()).map(_.exclude("org.jline" -> "*"))
+    millResolver().classpath(deps, artifactTypes = Some(artifactTypes())) ++ localClasspath()
   }
 
-  override def mvnDeps: T[Seq[Dep]] = downgradeJline {
+  override def mvnDeps: T[Seq[Dep]] =
     super.mvnDeps() ++ Seq(mvn"org.scala-lang::scala3-compiler:${Versions.scala}")
-  }
 
   override def compileMvnDeps: T[Seq[Dep]] = super.compileMvnDeps() ++ Seq(
     mvn"org.graalvm.nativeimage:svm:${Versions.graalVmVersion}"
@@ -154,10 +121,10 @@ object `java-class-name` extends JavaClassNameModule with JavaMainClassNativeIma
   }
 }
 
-trait Tests(jlineDeps: Seq[Dep]) extends ScalaModule with TestModule.Utest {
+trait Tests extends ScalaModule with TestModule.Utest {
   def launcher: T[PathRef]
 
-  def mvnDeps: T[Seq[Dep]] = super.mvnDeps() ++ jlineDeps ++ Seq(
+  def mvnDeps: T[Seq[Dep]] = super.mvnDeps() ++ Seq(
     mvn"com.lihaoyi::os-lib:${Versions.osLib}",
     mvn"com.lihaoyi::utest:${Versions.uTest}"
   )
@@ -170,20 +137,20 @@ trait Tests(jlineDeps: Seq[Dep]) extends ScalaModule with TestModule.Utest {
 }
 
 object `java-class-name-tests` extends JavaClassNameModule with SbtModule {
-  object test extends Tests(jlineDeps = jlineDeps) with super.SbtTests {
+  object test extends Tests with super.SbtTests {
     def launcher: T[PathRef] = `java-class-name`.nativeImage()
   }
 }
 
 object `java-class-name-static-tests` extends JavaClassNameModule with SbtModule {
-  object test extends Tests(jlineDeps = jlineDeps) with super.SbtTests {
+  object test extends Tests with super.SbtTests {
     def sources: T[Seq[PathRef]] = `java-class-name-tests`.test.sources()
     def launcher: T[PathRef]     = `java-class-name`.static.nativeImage()
   }
 }
 
 object `java-class-name-mostly-static-tests` extends JavaClassNameModule with SbtModule {
-  object test extends Tests(jlineDeps = jlineDeps) with super.SbtTests {
+  object test extends Tests with super.SbtTests {
     def sources: T[Seq[PathRef]] = `java-class-name-tests`.test.sources()
     def launcher: T[PathRef]     = `java-class-name`.`mostly-static`.nativeImage()
   }
