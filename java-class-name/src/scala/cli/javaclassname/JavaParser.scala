@@ -4,6 +4,7 @@ import dotty.tools.dotc.ast.untpd.ModuleDef
 import dotty.tools.dotc.ast.{Trees, untpd}
 import dotty.tools.dotc.core.Contexts.{Context, ContextBase}
 import dotty.tools.dotc.core.Flags
+import dotty.tools.dotc.core.StdNames.tpnme
 import dotty.tools.dotc.parsing.JavaParsers.OutlineJavaParser
 import dotty.tools.dotc.util.SourceFile
 import dotty.tools.io.VirtualFile
@@ -11,11 +12,27 @@ import dotty.tools.io.VirtualFile
 import scala.io.Codec
 
 object JavaParser {
+
+  /** The stock parser emits typed trees for `java.lang.Object` and `Unit`, which require the
+    * compiler definitions to be initialized (and thus the Scala library on the classpath). We only
+    * need names and modifiers, so we fall back to untyped trees and skip the dummy constructors.
+    */
+  private class UntypedOutlineJavaParser(source: SourceFile)(using Context)
+      extends OutlineJavaParser(source) {
+    override def ObjectTpt(): untpd.Tree = javaLangDot(tpnme.Object)
+    override def makeTemplate(
+      parents: List[untpd.Tree],
+      stats: List[untpd.Tree],
+      tparams: List[untpd.TypeDef],
+      needsDummyConstr: Boolean
+    ): untpd.Template = super.makeTemplate(parents, stats, tparams, needsDummyConstr = false)
+  }
+
   private def parseOutline(byteContent: Array[Byte]): untpd.Tree = {
     given Context     = ContextBase().initialCtx.fresh
     val virtualFile   = VirtualFile("placeholder.java", byteContent)
     val sourceFile    = SourceFile(virtualFile, Codec.UTF8)
-    val outlineParser = OutlineJavaParser(sourceFile)
+    val outlineParser = UntypedOutlineJavaParser(sourceFile)
     outlineParser.parse()
   }
 
