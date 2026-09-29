@@ -54,8 +54,10 @@ trait JavaMainClassNativeImage extends NativeImage {
 }
 
 trait JavaClassNameModule extends ScalaModule with ScalafixModule {
+  private val futureLazyValOpts = Seq("-Yfuture-lazy-vals", "-java-output-version:17")
+
   override def scalacOptions: T[Seq[String]] =
-    super.scalacOptions() ++ Seq("-Wunused:all", "-deprecation", "-Werror")
+    super.scalacOptions() ++ Seq("-Wunused:all", "-deprecation", "-Werror") ++ futureLazyValOpts
 
   override def scalaVersion: T[String] = Versions.scala
 }
