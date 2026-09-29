@@ -55,7 +55,7 @@ trait JavaMainClassNativeImage extends NativeImage {
 
 trait JavaClassNameModule extends ScalaModule with ScalafixModule {
   override def scalacOptions: T[Seq[String]] =
-    super.scalacOptions() ++ Seq("-Wunused:all")
+    super.scalacOptions() ++ Seq("-Wunused:all", "-deprecation", "-Werror")
 
   override def scalaVersion: T[String] = Versions.scala
 }
