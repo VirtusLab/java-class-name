@@ -21,7 +21,7 @@ import mill.util.{Tasks, VcsVersion}
 object Versions {
   def scala          = "3.3.8"
   def graalVmVersion = "22.3.1"
-  def coursier       = "2.1.25-M19"
+  def coursier       = "2.1.25-M26"
   def osLib          = "0.11.8"
   def uTest          = "0.9.5"
   def ubuntu         = "24.04"
@@ -93,7 +93,7 @@ object `java-class-name` extends JavaClassNameModule with JavaMainClassNativeIma
       Some(
         NativeImage.linuxStaticParams(
           "scala-cli-base-musl:latest",
-          s"https://github.com/coursier/coursier/releases/download/v${Versions.coursier}/cs-x86_64-pc-linux.gz"
+          s"https://github.com/coursier/coursier/releases/download/v${Versions.coursier}/cs-x86_64-pc-linux-static.gz"
         )
       )
     }

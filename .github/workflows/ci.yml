@@ -22,8 +22,8 @@ jobs:
         with:
           fetch-depth: 0
           submodules: true
-      - uses: coursier/cache-action@v7
-      - uses: coursier/setup-action@v1
+      - uses: coursier/cache-action@v8
+      - uses: coursier/setup-action@v3
         with:
           jvm: temurin:17
       - run: |
@@ -61,8 +61,8 @@ jobs:
         with:
           fetch-depth: 0
           submodules: true
-      - uses: coursier/cache-action@v7
-      - uses: coursier/setup-action@v1
+      - uses: coursier/cache-action@v8
+      - uses: coursier/setup-action@v3
         with:
           jvm: temurin:17
       - run: |
@@ -93,8 +93,8 @@ jobs:
         with:
           fetch-depth: 0
           submodules: true
-      - uses: coursier/cache-action@v7
-      - uses: coursier/setup-action@v1
+      - uses: coursier/cache-action@v8
+      - uses: coursier/setup-action@v3
         with:
           jvm: temurin:17
       - run: |
@@ -122,8 +122,8 @@ jobs:
         with:
           fetch-depth: 0
           submodules: true
-      - uses: coursier/cache-action@v7
-      - uses: coursier/setup-action@v1
+      - uses: coursier/cache-action@v8
+      - uses: coursier/setup-action@v3
         with:
           jvm: temurin:17
       - name: Run scalafix
@@ -155,8 +155,8 @@ jobs:
         with:
           fetch-depth: 0
           submodules: true
-      - uses: coursier/cache-action@v7
-      - uses: coursier/setup-action@v1
+      - uses: coursier/cache-action@v8
+      - uses: coursier/setup-action@v3
         with:
           jvm: temurin:17
       - run: .github/scripts/gpg-setup.sh
