@@ -101,7 +101,9 @@ object `scala3-graal-processor` extends JavaClassNameModule {
   override def mainClass: T[Option[String]] = Some("scala.cli.graal.CoursierCacheProcessor")
 
   override def mvnDeps: T[Seq[Dep]] = downgradeJline {
-    super.mvnDeps() ++ Seq(mvn"org.virtuslab.scala-cli::scala3-graal:${Versions.scalaCli}")
+    super.mvnDeps() ++ Seq(
+      mvn"org.virtuslab.scala-cli::scala3-graal-processor:${Versions.scalaCli}"
+    )
   }
 }
 
