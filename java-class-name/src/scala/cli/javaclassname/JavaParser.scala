@@ -72,9 +72,14 @@ object JavaParser {
   }
 
   extension (mdef: untpd.DefTree) {
-    def nonPackagePrivate: Boolean = mdef.mods.privateWithin.toTermName.toString != "<empty>"
-    def isPrivate: Boolean         = mdef.mods.flags.is(Flags.Private)
-    def isProtected: Boolean       = mdef.mods.flags.is(Flags.Protected)
+
+    /** The Java parser has no `Public` flag. Instead, package-private (and `protected`) members get
+      * the enclosing package recorded as `privateWithin` (`<empty>` for the default package), while
+      * `public` and `private` leave it empty. So `public` is: nothing in `privateWithin` and
+      * neither `private` nor `protected` set.
+      */
+    def isPublic: Boolean =
+      mdef.mods.privateWithin.isEmpty && !mdef.mods.isOneOf(Flags.Private | Flags.Protected)
   }
 
   def parseRootPublicClassName(byteContent: Array[Byte]): Option[String] =
@@ -84,7 +89,6 @@ object JavaParser {
         case _                       => None
       }
       .flatMap(_.collectFirst {
-        case mdef: ModuleDef if mdef.nonPackagePrivate && !mdef.isPrivate && !mdef.isProtected =>
-          mdef.name.toString
+        case mdef: ModuleDef if mdef.isPublic => mdef.name.toString
       })
 }

@@ -167,9 +167,8 @@ class JavaClassNameTests extends munit.FunSuite {
     assertEquals(extractClassName("FancyEnum.java", content), "FancyEnum")
   }
 
-  // TODO: package-private classes aren't filtered out, "PackagePrivate" is printed
   // https://github.com/VirtusLab/scala-cli/issues/4515
-  test("package-private class".ignore) {
+  test("package-private class") {
     val content =
       """package a;
         |
@@ -178,9 +177,8 @@ class JavaClassNameTests extends munit.FunSuite {
     assertEquals(extractClassName("PackagePrivate.java", content), "")
   }
 
-  // TODO: package-private classes aren't filtered out, "Helper" is printed
   // https://github.com/VirtusLab/scala-cli/issues/4515
-  test("public class after a package-private one".ignore) {
+  test("public class after a package-private one") {
     val content =
       """package a;
         |
@@ -189,6 +187,33 @@ class JavaClassNameTests extends munit.FunSuite {
         |public class Second {}
         |""".stripMargin
     assertEquals(extractClassName("Second.java", content), "Second")
+  }
+
+  test("package-private interface, enum and record") {
+    val content =
+      """package a.b.c;
+        |
+        |interface HiddenIface {}
+        |enum HiddenEnum { A }
+        |record HiddenRecord(int x) {}
+        |""".stripMargin
+    assertEquals(extractClassName("HiddenIface.java", content), "")
+  }
+
+  test("package-private class in the default package") {
+    val content =
+      """class DefaultPackagePrivate {}
+        |""".stripMargin
+    assertEquals(extractClassName("DefaultPackagePrivate.java", content), "")
+  }
+
+  test("public class after a package-private one in the default package") {
+    val content =
+      """class Helper {}
+        |
+        |public class Main {}
+        |""".stripMargin
+    assertEquals(extractClassName("Main.java", content), "Main")
   }
 
 }
