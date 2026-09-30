@@ -104,15 +104,25 @@ class JavaClassNameTests extends munit.FunSuite {
     assertEquals(extractClassName("RefRecord.java", content), "RefRecord")
   }
 
-  // TODO: primitive types need initialized compiler definitions, the launcher crashes with an NPE
-  // https://github.com/VirtusLab/scala-cli/issues/4516
-  test("record with primitive components".ignore) {
+  test("record with primitive components") {
     val content =
       """package a;
         |
         |public record PrimRecord(int a, String b) {}
         |""".stripMargin
     assertEquals(extractClassName("PrimRecord.java", content), "PrimRecord")
+  }
+
+  test("record with all primitive kinds, arrays and varargs") {
+    val content =
+      """package a;
+        |
+        |public record AllPrims(
+        |  byte a, short b, char c, int d, long e, float f, double g, boolean h,
+        |  int[] i, double[][] j, long... k
+        |) {}
+        |""".stripMargin
+    assertEquals(extractClassName("AllPrims.java", content), "AllPrims")
   }
 
   // TODO: enums need initialized compiler definitions, the launcher crashes with an NPE

@@ -6,6 +6,7 @@ import dotty.tools.dotc.core.Contexts.{Context, ContextBase}
 import dotty.tools.dotc.core.Flags
 import dotty.tools.dotc.core.StdNames.tpnme
 import dotty.tools.dotc.parsing.JavaParsers.OutlineJavaParser
+import dotty.tools.dotc.parsing.JavaTokens
 import dotty.tools.dotc.util.SourceFile
 import dotty.tools.io.VirtualFile
 
@@ -13,13 +14,29 @@ import scala.io.Codec
 
 object JavaParser {
 
-  /** The stock parser emits typed trees for `java.lang.Object` and `Unit`, which require the
-    * compiler definitions to be initialized (and thus the Scala library on the classpath). We only
-    * need names and modifiers, so we fall back to untyped trees and skip the dummy constructors.
+  /** The stock parser emits typed trees for `java.lang.Object`, `Unit` and the Java primitive
+    * types, which require the compiler definitions to be initialized (and thus the Scala library on
+    * the classpath). We only need names and modifiers, so we fall back to untyped trees and skip
+    * the dummy constructors.
     */
   private class UntypedOutlineJavaParser(source: SourceFile)(using Context)
       extends OutlineJavaParser(source) {
     override def ObjectTpt(): untpd.Tree = javaLangDot(tpnme.Object)
+
+    /** Primitive types show up in record headers (and method signatures), e.g. `record R(int a)`.
+      * The stock implementation resolves them via `defn.IntType` & co, which crashes with an NPE
+      * without initialized definitions. We only need class names, so any untyped placeholder tree
+      * will do. Non-primitive tokens must still go through the stock syntax error reporting and
+      * recovery (`skip()`), otherwise malformed input could throw off brace balancing.
+      */
+    override def basicType(): untpd.Tree =
+      if JavaTokens.primTypes.contains(in.token) then
+        atSpan(in.offset) {
+          in.nextToken()
+          ObjectTpt()
+        }
+      else super.basicType()
+
     override def makeTemplate(
       parents: List[untpd.Tree],
       stats: List[untpd.Tree],
