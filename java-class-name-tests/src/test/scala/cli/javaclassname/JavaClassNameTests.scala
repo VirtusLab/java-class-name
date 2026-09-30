@@ -1,5 +1,7 @@
 package cli.javaclassname
 
+import com.eed3si9n.expecty.Expecty.expect
+
 class JavaClassNameTests extends munit.FunSuite {
 
   val launcher = Option(System.getenv("JAVA_CLASS_NAME_CLI"))
@@ -32,14 +34,14 @@ class JavaClassNameTests extends munit.FunSuite {
          |  }
          |}
          |""".stripMargin
-    assertEquals(extractClassName("Foo.java", content), expectedClassName)
+    expect(extractClassName("Foo.java", content) == expectedClassName)
   }
 
   test("no package") {
     val content =
       """public class NoPackage {}
         |""".stripMargin
-    assertEquals(extractClassName("NoPackage.java", content), "NoPackage")
+    expect(extractClassName("NoPackage.java", content) == "NoPackage")
   }
 
   test("generic class") {
@@ -54,7 +56,7 @@ class JavaClassNameTests extends munit.FunSuite {
         |  public U setValue(U u) { return u; }
         |}
         |""".stripMargin
-    assertEquals(extractClassName("Generic.java", content), "Generic")
+    expect(extractClassName("Generic.java", content) == "Generic")
   }
 
   test("void methods") {
@@ -68,7 +70,7 @@ class JavaClassNameTests extends munit.FunSuite {
         |  void g(int x, long y) {}
         |}
         |""".stripMargin
-    assertEquals(extractClassName("VoidMethods.java", content), "VoidMethods")
+    expect(extractClassName("VoidMethods.java", content) == "VoidMethods")
   }
 
   test("interface") {
@@ -80,7 +82,7 @@ class JavaClassNameTests extends munit.FunSuite {
         |  default int g() { return 1; }
         |}
         |""".stripMargin
-    assertEquals(extractClassName("Iface.java", content), "Iface")
+    expect(extractClassName("Iface.java", content) == "Iface")
   }
 
   test("annotation") {
@@ -92,7 +94,7 @@ class JavaClassNameTests extends munit.FunSuite {
         |  int n() default 0;
         |}
         |""".stripMargin
-    assertEquals(extractClassName("Annot.java", content), "Annot")
+    expect(extractClassName("Annot.java", content) == "Annot")
   }
 
   test("record with reference components") {
@@ -101,7 +103,7 @@ class JavaClassNameTests extends munit.FunSuite {
         |
         |public record RefRecord(String a, Object b) {}
         |""".stripMargin
-    assertEquals(extractClassName("RefRecord.java", content), "RefRecord")
+    expect(extractClassName("RefRecord.java", content) == "RefRecord")
   }
 
   test("record with primitive components") {
@@ -110,7 +112,7 @@ class JavaClassNameTests extends munit.FunSuite {
         |
         |public record PrimRecord(int a, String b) {}
         |""".stripMargin
-    assertEquals(extractClassName("PrimRecord.java", content), "PrimRecord")
+    expect(extractClassName("PrimRecord.java", content) == "PrimRecord")
   }
 
   test("record with all primitive kinds, arrays and varargs") {
@@ -122,7 +124,7 @@ class JavaClassNameTests extends munit.FunSuite {
         |  int[] i, double[][] j, long... k
         |) {}
         |""".stripMargin
-    assertEquals(extractClassName("AllPrims.java", content), "AllPrims")
+    expect(extractClassName("AllPrims.java", content) == "AllPrims")
   }
 
   // https://github.com/VirtusLab/scala-cli/issues/4514
@@ -132,7 +134,7 @@ class JavaClassNameTests extends munit.FunSuite {
         |
         |public enum SimpleEnum { A, B }
         |""".stripMargin
-    assertEquals(extractClassName("SimpleEnum.java", content), "SimpleEnum")
+    expect(extractClassName("SimpleEnum.java", content) == "SimpleEnum")
   }
 
   // https://github.com/VirtusLab/scala-cli/issues/4514
@@ -146,7 +148,7 @@ class JavaClassNameTests extends munit.FunSuite {
         |  int g() { return 1; }
         |}
         |""".stripMargin
-    assertEquals(extractClassName("MethodEnum.java", content), "MethodEnum")
+    expect(extractClassName("MethodEnum.java", content) == "MethodEnum")
   }
 
   // https://github.com/VirtusLab/scala-cli/issues/4514
@@ -164,7 +166,7 @@ class JavaClassNameTests extends munit.FunSuite {
         |  public static void main(String[] args) { System.out.println(values().length); }
         |}
         |""".stripMargin
-    assertEquals(extractClassName("FancyEnum.java", content), "FancyEnum")
+    expect(extractClassName("FancyEnum.java", content) == "FancyEnum")
   }
 
   // https://github.com/VirtusLab/scala-cli/issues/4515
@@ -174,7 +176,7 @@ class JavaClassNameTests extends munit.FunSuite {
         |
         |class PackagePrivate {}
         |""".stripMargin
-    assertEquals(extractClassName("PackagePrivate.java", content), "")
+    expect(extractClassName("PackagePrivate.java", content) == "")
   }
 
   // https://github.com/VirtusLab/scala-cli/issues/4515
@@ -186,7 +188,7 @@ class JavaClassNameTests extends munit.FunSuite {
         |
         |public class Second {}
         |""".stripMargin
-    assertEquals(extractClassName("Second.java", content), "Second")
+    expect(extractClassName("Second.java", content) == "Second")
   }
 
   test("package-private interface, enum and record") {
@@ -197,14 +199,14 @@ class JavaClassNameTests extends munit.FunSuite {
         |enum HiddenEnum { A }
         |record HiddenRecord(int x) {}
         |""".stripMargin
-    assertEquals(extractClassName("HiddenIface.java", content), "")
+    expect(extractClassName("HiddenIface.java", content) == "")
   }
 
   test("package-private class in the default package") {
     val content =
       """class DefaultPackagePrivate {}
         |""".stripMargin
-    assertEquals(extractClassName("DefaultPackagePrivate.java", content), "")
+    expect(extractClassName("DefaultPackagePrivate.java", content) == "")
   }
 
   test("public class after a package-private one in the default package") {
@@ -213,7 +215,7 @@ class JavaClassNameTests extends munit.FunSuite {
         |
         |public class Main {}
         |""".stripMargin
-    assertEquals(extractClassName("Main.java", content), "Main")
+    expect(extractClassName("Main.java", content) == "Main")
   }
 
   // Java 21+ compact source files (JEP 445/463/512) have no
@@ -226,7 +228,7 @@ class JavaClassNameTests extends munit.FunSuite {
         |  System.out.println(greeting);
         |}
         |""".stripMargin
-    assertEquals(extractClassName("Unnamed.java", content), "Unnamed")
+    expect(extractClassName("Unnamed.java", content) == "Unnamed")
   }
 
   test("unnamed class with a helper class and a record after main") {
@@ -243,7 +245,7 @@ class JavaClassNameTests extends munit.FunSuite {
         |
         |record Pair(int n, String s) {}
         |""".stripMargin
-    assertEquals(extractClassName("WithHelpers.java", content), "WithHelpers")
+    expect(extractClassName("WithHelpers.java", content) == "WithHelpers")
   }
 
   test("unnamed class with a field before main") {
@@ -252,7 +254,7 @@ class JavaClassNameTests extends munit.FunSuite {
         |String greeting = "hi";
         |void main() { System.out.println(greeting + N); }
         |""".stripMargin
-    assertEquals(extractClassName("FieldFirst.java", content), "FieldFirst")
+    expect(extractClassName("FieldFirst.java", content) == "FieldFirst")
   }
 
 }
