@@ -216,13 +216,9 @@ class JavaClassNameTests extends munit.FunSuite {
     assertEquals(extractClassName("Main.java", content), "Main")
   }
 
-  // TODO: Java 21+ unnamed classes (JEP 445/463/512 "compact source files") crash the launcher.
-  // Top-level members without an enclosing type are parsed via `termDecl`, which builds the `void`
-  // return type from `defn.UnitType` and NPEs without initialized compiler definitions. Even once
-  // that is bypassed, the stock parser returns `EmptyTree` for compact compilation units, so no
-  // name would be printed. `javac` names the implicit class after the source file, so the launcher
-  // should arguably print the file name stem (or Scala CLI should handle this case itself).
-  test("unnamed class with top-level main".ignore) {
+  // Java 21+ compact source files (JEP 445/463/512) have no
+  // top-level type, so `javac` names the implicit class after the source file.
+  test("unnamed class with top-level main") {
     val content =
       """String greeting = "hi";
         |
@@ -231,6 +227,32 @@ class JavaClassNameTests extends munit.FunSuite {
         |}
         |""".stripMargin
     assertEquals(extractClassName("Unnamed.java", content), "Unnamed")
+  }
+
+  test("unnamed class with a helper class and a record after main") {
+    val content =
+      """import java.util.List;
+        |
+        |void main() {
+        |  System.out.println(new Helper().greet(List.of(new Pair(1, "a"))));
+        |}
+        |
+        |class Helper {
+        |  String greet(List<Pair> ps) { return "hi " + ps; }
+        |}
+        |
+        |record Pair(int n, String s) {}
+        |""".stripMargin
+    assertEquals(extractClassName("WithHelpers.java", content), "WithHelpers")
+  }
+
+  test("unnamed class with a field before main") {
+    val content =
+      """static final int N = 1;
+        |String greeting = "hi";
+        |void main() { System.out.println(greeting + N); }
+        |""".stripMargin
+    assertEquals(extractClassName("FieldFirst.java", content), "FieldFirst")
   }
 
 }
