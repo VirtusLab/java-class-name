@@ -104,9 +104,7 @@ class JavaClassNameTests extends munit.FunSuite {
     assertEquals(extractClassName("RefRecord.java", content), "RefRecord")
   }
 
-  // TODO: primitive types need initialized compiler definitions, the launcher crashes with an NPE
-  // https://github.com/VirtusLab/scala-cli/issues/4516
-  test("record with primitive components".ignore) {
+  test("record with primitive components") {
     val content =
       """package a;
         |
@@ -115,9 +113,20 @@ class JavaClassNameTests extends munit.FunSuite {
     assertEquals(extractClassName("PrimRecord.java", content), "PrimRecord")
   }
 
-  // TODO: enums need initialized compiler definitions, the launcher crashes with an NPE
+  test("record with all primitive kinds, arrays and varargs") {
+    val content =
+      """package a;
+        |
+        |public record AllPrims(
+        |  byte a, short b, char c, int d, long e, float f, double g, boolean h,
+        |  int[] i, double[][] j, long... k
+        |) {}
+        |""".stripMargin
+    assertEquals(extractClassName("AllPrims.java", content), "AllPrims")
+  }
+
   // https://github.com/VirtusLab/scala-cli/issues/4514
-  test("enum".ignore) {
+  test("enum") {
     val content =
       """package a;
         |
@@ -126,9 +135,8 @@ class JavaClassNameTests extends munit.FunSuite {
     assertEquals(extractClassName("SimpleEnum.java", content), "SimpleEnum")
   }
 
-  // TODO: enums need initialized compiler definitions, the launcher crashes with an NPE
   // https://github.com/VirtusLab/scala-cli/issues/4514
-  test("enum with methods".ignore) {
+  test("enum with methods") {
     val content =
       """package a;
         |
@@ -141,9 +149,26 @@ class JavaClassNameTests extends munit.FunSuite {
     assertEquals(extractClassName("MethodEnum.java", content), "MethodEnum")
   }
 
-  // TODO: package-private classes aren't filtered out, "PackagePrivate" is printed
+  // https://github.com/VirtusLab/scala-cli/issues/4514
+  test("enum with constructor args, constant bodies and interfaces") {
+    val content =
+      """package a;
+        |
+        |public enum FancyEnum implements Runnable, java.io.Serializable {
+        |  A(1) { public void run() {} },
+        |  B(2, "b");
+        |  private final int n;
+        |  FancyEnum(int n) { this(n, ""); }
+        |  FancyEnum(int n, String s) { this.n = n; }
+        |  public void run() {}
+        |  public static void main(String[] args) { System.out.println(values().length); }
+        |}
+        |""".stripMargin
+    assertEquals(extractClassName("FancyEnum.java", content), "FancyEnum")
+  }
+
   // https://github.com/VirtusLab/scala-cli/issues/4515
-  test("package-private class".ignore) {
+  test("package-private class") {
     val content =
       """package a;
         |
@@ -152,9 +177,8 @@ class JavaClassNameTests extends munit.FunSuite {
     assertEquals(extractClassName("PackagePrivate.java", content), "")
   }
 
-  // TODO: package-private classes aren't filtered out, "Helper" is printed
   // https://github.com/VirtusLab/scala-cli/issues/4515
-  test("public class after a package-private one".ignore) {
+  test("public class after a package-private one") {
     val content =
       """package a;
         |
@@ -163,6 +187,33 @@ class JavaClassNameTests extends munit.FunSuite {
         |public class Second {}
         |""".stripMargin
     assertEquals(extractClassName("Second.java", content), "Second")
+  }
+
+  test("package-private interface, enum and record") {
+    val content =
+      """package a.b.c;
+        |
+        |interface HiddenIface {}
+        |enum HiddenEnum { A }
+        |record HiddenRecord(int x) {}
+        |""".stripMargin
+    assertEquals(extractClassName("HiddenIface.java", content), "")
+  }
+
+  test("package-private class in the default package") {
+    val content =
+      """class DefaultPackagePrivate {}
+        |""".stripMargin
+    assertEquals(extractClassName("DefaultPackagePrivate.java", content), "")
+  }
+
+  test("public class after a package-private one in the default package") {
+    val content =
+      """class Helper {}
+        |
+        |public class Main {}
+        |""".stripMargin
+    assertEquals(extractClassName("Main.java", content), "Main")
   }
 
 }
