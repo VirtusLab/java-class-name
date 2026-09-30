@@ -25,7 +25,7 @@ object JavaClassName {
         sys.exit(1)
     }
     val content      = Files.readAllBytes(p)
-    val classNameOpt = JavaParser.parseRootPublicClassName(content)
+    val classNameOpt = JavaParser.rootClassName(content, p.getFileName.toString)
     for (className <- classNameOpt)
       println(className)
   }
