@@ -37,6 +37,24 @@ object JavaParser {
         }
       else super.basicType()
 
+    /** The stock `enumDecl` synthesizes `values()` / `valueOf(String)` via `defn.StringType` and a
+      * `java.lang.Enum[E]` parent, both of which crash with an NPE without initialized definitions.
+      * We only need the enum's name and modifiers, so we parse the header, let `typeBody` skip the
+      * body (constants included) and emit the plain class + companion pair like other declarations.
+      */
+    override def enumDecl(start: Int, mods: untpd.Modifiers): List[untpd.Tree] = {
+      accept(JavaTokens.ENUM)
+      val nameOffset      = in.offset
+      val name            = identForType()
+      val interfaces      = interfacesOpt()
+      val (statics, body) = typeBody(JavaTokens.ENUM, name)
+      val enumClass       = atSpan(start, nameOffset) {
+        untpd.TypeDef(name, makeTemplate(interfaces, body, Nil, needsDummyConstr = false))
+          .withMods(mods | Flags.JavaEnum)
+      }
+      addCompanionObject(statics, enumClass)
+    }
+
     override def makeTemplate(
       parents: List[untpd.Tree],
       stats: List[untpd.Tree],

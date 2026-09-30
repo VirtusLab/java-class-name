@@ -125,9 +125,8 @@ class JavaClassNameTests extends munit.FunSuite {
     assertEquals(extractClassName("AllPrims.java", content), "AllPrims")
   }
 
-  // TODO: enums need initialized compiler definitions, the launcher crashes with an NPE
   // https://github.com/VirtusLab/scala-cli/issues/4514
-  test("enum".ignore) {
+  test("enum") {
     val content =
       """package a;
         |
@@ -136,9 +135,8 @@ class JavaClassNameTests extends munit.FunSuite {
     assertEquals(extractClassName("SimpleEnum.java", content), "SimpleEnum")
   }
 
-  // TODO: enums need initialized compiler definitions, the launcher crashes with an NPE
   // https://github.com/VirtusLab/scala-cli/issues/4514
-  test("enum with methods".ignore) {
+  test("enum with methods") {
     val content =
       """package a;
         |
@@ -149,6 +147,24 @@ class JavaClassNameTests extends munit.FunSuite {
         |}
         |""".stripMargin
     assertEquals(extractClassName("MethodEnum.java", content), "MethodEnum")
+  }
+
+  // https://github.com/VirtusLab/scala-cli/issues/4514
+  test("enum with constructor args, constant bodies and interfaces") {
+    val content =
+      """package a;
+        |
+        |public enum FancyEnum implements Runnable, java.io.Serializable {
+        |  A(1) { public void run() {} },
+        |  B(2, "b");
+        |  private final int n;
+        |  FancyEnum(int n) { this(n, ""); }
+        |  FancyEnum(int n, String s) { this.n = n; }
+        |  public void run() {}
+        |  public static void main(String[] args) { System.out.println(values().length); }
+        |}
+        |""".stripMargin
+    assertEquals(extractClassName("FancyEnum.java", content), "FancyEnum")
   }
 
   // TODO: package-private classes aren't filtered out, "PackagePrivate" is printed
